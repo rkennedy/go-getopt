@@ -58,18 +58,14 @@ if ! podman volume exists "${cache_volume}"; then
     podman volume create "${volume_args[@]}" "${cache_volume}"
 fi
 
-g sh -xeuo pipefail <<END
+g sh -x <<END
+set -euo pipefail
+apk add --no-cache git
 if ${update}; then
     go get -u
 fi
-go mod tidy -go 1.21
-# TODO Check that goimports is the matching version.
-if ! test -x "${cache_path}/bin/goimports"; then
-    go install golang.org/x/tools/cmd/goimports
-fi
-"${cache_path}/bin/goimports" -w -l .
-go vet
-go test ./...
+go mod tidy -go 1.20
+go run mage.go check
 END
 
 # vim: et sw=4 ts=4
