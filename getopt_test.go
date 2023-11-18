@@ -169,10 +169,10 @@ func TestShort(t *testing.T) {
 		tc := tc
 		t.Run(tc.label, func(t *testing.T) {
 			g := NewWithT(t)
-			gopt := New()
+			gopt := New(tc.argv, tc.opts)
 			var ch rune
 			var err error
-			for ch, err = gopt.Loop(tc.argv, tc.opts); err == nil && ch != -1; ch, err = gopt.Loop(tc.argv, tc.opts) { //revive:disable-line:empty-block,line-length-limit
+			for ch, err = gopt.Loop(); err == nil && ch != -1; ch, err = gopt.Loop() { //revive:disable-line:empty-block
 			}
 			if tc.expectErrmsg {
 				g.Expect(err).To(HaveOccurred())
@@ -189,10 +189,10 @@ func TestLong(t *testing.T) {
 		tc := tc
 		t.Run(tc.label, func(t *testing.T) {
 			g := NewWithT(t)
-			gopt := New()
+			gopt := NewLong(tc.argv, tc.opts, tc.longopts)
 			var ch rune
 			var err error
-			for ch, _, err = gopt.LoopLong(tc.argv, tc.opts, tc.longopts); err == nil && ch != -1; ch, _, err = gopt.LoopLong(tc.argv, tc.opts, tc.longopts) { //revive:disable-line:empty-block,line-length-limit
+			for ch, _, err = gopt.LoopLong(); err == nil && ch != -1; ch, _, err = gopt.LoopLong() { //revive:disable-line:empty-block,line-length-limit
 			}
 			if tc.expectErrmsg {
 				g.Expect(err).To(HaveOccurred())
@@ -215,8 +215,8 @@ func TestAmbiguous(t *testing.T) {
 	}
 	argv := []string{"program", "--on"}
 
-	gopt := New()
-	ch, _, err := gopt.LoopLong(argv, "12345", longopts)
+	gopt := NewLong(argv, "12345", longopts)
+	ch, _, err := gopt.LoopLong()
 
 	g.Expect(ch).To(Equal('?'))
 	g.Expect(err).To(MatchError(Ambig("on")))

@@ -32,10 +32,21 @@ type Option struct {
 	Val int
 }
 
+type optinfo struct {
+	scanningMode           scanningMode
+	w                      bool
+	longOnly               bool
+	opts                   map[rune]ArgumentDisposition
+}
+
 // Getopt is an option parser.
 type Getopt struct {
+	Args []string // Args holds a copy of the argument list. It gets permuted during parsing.
+	optinfo
+	longOptions []Option
+
 	Optarg   *string // Optarg points at the argument associated with the most recently found option.
-	Opterr   bool    // Opterr specifies whether an error message should be printed.
+	Opterr   bool    // Opterr is ignored. Handle errors returned in the Go way.
 	Optind   int     // Optind is the index into parent argv vector.
 	Optopt   rune    // Optopt is a character checked for validity.
 	Optreset bool    // Optreset resets getopt.
@@ -47,15 +58,57 @@ type Getopt struct {
 	nonoptEnd   int // first option after non options (for permute)
 }
 
-// New returns an initialized Getopt parser.
-func New() *Getopt {
-	return &Getopt{
-		Opterr:      true,
+// New returns an initialized Getopt parser with no long options. The parser
+// always works in Posixly correct mode.
+func New(args []string, options string) *Getopt {
+	result := &Getopt{
+		Args:        args,
+		optinfo:     parseShortOptionSpec(options),
 		Optind:      1,
 		Optopt:      '?',
 		nonoptStart: -1,
 		nonoptEnd:   -1,
 	}
+	if !strings.HasPrefix(options, posixPrefix) && !strings.HasPrefix(options, inorderPrefix) {
+		// We don't pass FLAG_PERMUTE to getoptInternal() since
+		// the BSD getopt(3) (unlike GNU) has never done this.
+
+		// Furthermore, since many privileged programs call getopt()
+		// before dropping privileges it makes sense to keep things
+		// as simple (and bug-free) as possible.
+		result.optinfo.scanningMode = posixlyCorrect
+	}
+	return result
+}
+
+// NewLong returns an initialized Getopt parser with long options.
+func NewLong(args []string, options string, longOptions []Option) *Getopt {
+	return &Getopt{
+		Args:        args,
+		optinfo:     parseShortOptionSpec(options),
+		longOptions: longOptions,
+		Optind:      1,
+		Optopt:      '?',
+		nonoptStart: -1,
+		nonoptEnd:   -1,
+	}
+}
+
+// NewLongOnly returns an initialized Getopt parser with long options that may
+// be recognized with only a '-' prefix instead of '--'. If there are no
+// candidate long options, then short options will be considered as well.
+func NewLongOnly(args []string, options string, longOptions []Option) *Getopt {
+	result := &Getopt{
+		Args:        args,
+		optinfo:     parseShortOptionSpec(options),
+		longOptions: longOptions,
+		Optind:      1,
+		Optopt:      '?',
+		nonoptStart: -1,
+		nonoptEnd:   -1,
+	}
+	result.optinfo.longOnly = true
+	return result
 }
 
 type scanningMode int
@@ -70,14 +123,8 @@ const (
 const (
 	BADCH   rune = '?'
 	INORDER rune = 1
+	BADARG  rune = ':'
 )
-
-func badarg(options *optinfo) rune {
-	if options.suppressPrintingErrors {
-		return ':'
-	}
-	return '?'
-}
 
 // RecArgChar is the error returned when a short option lacks a required argument.
 type RecArgChar rune
@@ -132,14 +179,6 @@ func permuteArgs(paNonoptStart int, paNonoptEnd int, optEnd int, nargv []string)
 	copy(nargv, newArgs)
 }
 
-type optinfo struct {
-	scanningMode           scanningMode
-	suppressPrintingErrors bool
-	w                      bool
-	longOnly               bool
-	opts                   map[rune]ArgumentDisposition
-}
-
 const (
 	posixPrefix   = "+"
 	inorderPrefix = "-"
@@ -158,7 +197,7 @@ func parseShortOptionSpec(options string) optinfo {
 		options = options[1:]
 	}
 	if strings.HasPrefix(options, ":") {
-		result.suppressPrintingErrors = true
+		// Here we would mark to suppress printing errors, but we just always do that.
 		options = options[1:]
 	}
 	result.opts = map[rune]ArgumentDisposition{}
@@ -194,7 +233,7 @@ func (inf *optinfo) HasOpt(c rune) bool {
  *	Parse long options in argc/argv argument vector.
  * Returns -1 if shortToo is set and the option does not match longOptions.
  */
-func (g *Getopt) parseLongOptions(nargv []string, options *optinfo, longOptions []Option, shortToo bool) (
+func (g *Getopt) parseLongOptions(shortToo bool) (
 	ch rune, longIndex int, err error) {
 	var currentArgvLen int
 	currentArgv := g.place
@@ -208,13 +247,13 @@ func (g *Getopt) parseLongOptions(nargv []string, options *optinfo, longOptions 
 	} else {
 		currentArgvLen = len(currentArgv)
 	}
-	for i := range longOptions {
+	for i := range g.longOptions {
 		// find matching long option
-		if !strings.HasPrefix(longOptions[i].Name, currentArgv[:currentArgvLen]) {
+		if !strings.HasPrefix(g.longOptions[i].Name, currentArgv[:currentArgvLen]) {
 			// option i is definitely not an abbreviation of currentArgv
 			continue
 		}
-		if len(longOptions[i].Name) == currentArgvLen {
+		if len(g.longOptions[i].Name) == currentArgvLen {
 			// exact match
 			match = i
 			break
@@ -244,53 +283,53 @@ func (g *Getopt) parseLongOptions(nargv []string, options *optinfo, longOptions 
 		return BADCH, 0, err
 	}
 	// option found
-	if longOptions[match].HasArg == NoArgument && hasEqual >= 0 {
+	if g.longOptions[match].HasArg == NoArgument && hasEqual >= 0 {
 		err := Noarg(currentArgv[:currentArgvLen])
 		// XXX: GNU sets Optopt to Val regardless of Flag
-		if longOptions[match].Flag == nil {
-			g.Optopt = rune(longOptions[match].Val)
+		if g.longOptions[match].Flag == nil {
+			g.Optopt = rune(g.longOptions[match].Val)
 		} else {
 			g.Optopt = 0
 		}
-		return badarg(options), 0, err
+		return BADARG, 0, err
 	}
-	if longOptions[match].HasArg == RequiredArgument || longOptions[match].HasArg == OptionalArgument {
+	if g.longOptions[match].HasArg == RequiredArgument || g.longOptions[match].HasArg == OptionalArgument {
 		if hasEqual >= 0 {
 			argpart := currentArgv[hasEqual:]
 			g.Optarg = &argpart
-		} else if longOptions[match].HasArg == RequiredArgument {
-			// optional argument doesn't use next nargv
-			if g.Optind >= len(nargv) {
+		} else if g.longOptions[match].HasArg == RequiredArgument {
+			// optional argument doesn't use next element from Args.
+			if g.Optind >= len(g.Args) {
 				// Missing argument. Handled below.
 				g.Optarg = nil
 			} else {
-				g.Optarg = &nargv[g.Optind]
+				g.Optarg = &g.Args[g.Optind]
 			}
 			g.Optind++
 		}
 	}
-	if longOptions[match].HasArg == RequiredArgument && g.Optarg == nil {
+	if g.longOptions[match].HasArg == RequiredArgument && g.Optarg == nil {
 		// Missing argument
 		err := RecArgString(currentArgv)
 		// XXX: GNU sets Optopt to Val regardless of Flag
-		if longOptions[match].Flag == nil {
-			g.Optopt = rune(longOptions[match].Val)
+		if g.longOptions[match].Flag == nil {
+			g.Optopt = rune(g.longOptions[match].Val)
 		} else {
 			g.Optopt = 0
 		}
 		g.Optind--
-		return badarg(options), 0, err
+		return BADARG, 0, err
 	}
-	if longOptions[match].Flag != nil {
-		*longOptions[match].Flag = longOptions[match].Val
+	if g.longOptions[match].Flag != nil {
+		*g.longOptions[match].Flag = g.longOptions[match].Val
 		return 0, match, nil
 	}
-	return rune(longOptions[match].Val), match, nil
+	return rune(g.longOptions[match].Val), match, nil
 }
 
-func (g *Getopt) getoptInternal(nargv []string, info *optinfo, longOptions []Option) (
+func (g *Getopt) getoptInternal() (
 	ch rune, longIndex int, err error) {
-	nargc := len(nargv)
+	nargc := len(g.Args)
 
 	g.Optarg = nil
 	if g.Optreset {
@@ -305,7 +344,7 @@ start:
 				g.place = ""
 				if g.nonoptEnd != -1 {
 					// Do permutation to put skipped non-options at the end.
-					permuteArgs(g.nonoptStart, g.nonoptEnd, g.Optind, nargv)
+					permuteArgs(g.nonoptStart, g.nonoptEnd, g.Optind, g.Args)
 					g.Optind -= g.nonoptEnd - g.nonoptStart
 				} else if g.nonoptStart != -1 {
 					// We skipped some non-options. Set Optind
@@ -316,17 +355,17 @@ start:
 				g.nonoptEnd = -1
 				return -1, 0, nil
 			}
-			g.place = nargv[g.Optind]
-			if !strings.HasPrefix(g.place, dash) || (len(g.place) == 1 && !info.HasOpt('-')) {
+			g.place = g.Args[g.Optind]
+			if !strings.HasPrefix(g.place, dash) || (len(g.place) == 1 && !g.optinfo.HasOpt('-')) {
 				g.place = "" // found non-option
-				if info.scanningMode == argsInOrder {
+				if g.optinfo.scanningMode == argsInOrder {
 					// GNU extension:
 					// return non-option as argument to option 1
-					g.Optarg = &nargv[g.Optind]
+					g.Optarg = &g.Args[g.Optind]
 					g.Optind++
 					return INORDER, 0, nil
 				}
-				if info.scanningMode == posixlyCorrect {
+				if g.optinfo.scanningMode == posixlyCorrect {
 					// If no permutation wanted, stop parsing
 					// at first non-option.
 					return -1, 0, nil
@@ -335,7 +374,7 @@ start:
 				if g.nonoptStart == -1 {
 					g.nonoptStart = g.Optind
 				} else if g.nonoptEnd != -1 {
-					permuteArgs(g.nonoptStart, g.nonoptEnd, g.Optind, nargv)
+					permuteArgs(g.nonoptStart, g.nonoptEnd, g.Optind, g.Args)
 					g.nonoptStart = g.Optind - (g.nonoptEnd - g.nonoptStart)
 					g.nonoptEnd = -1
 				}
@@ -355,7 +394,7 @@ start:
 					// We found an option (--), so if we skipped
 					// non-options, we have to permute.
 					if g.nonoptEnd != -1 {
-						permuteArgs(g.nonoptStart, g.nonoptEnd, g.Optind, nargv)
+						permuteArgs(g.nonoptStart, g.nonoptEnd, g.Optind, g.Args)
 						g.Optind -= g.nonoptEnd - g.nonoptStart
 					}
 					g.nonoptStart = -1
@@ -372,15 +411,15 @@ start:
 	 *  2) the arg is not just "-"
 	 *  3) either the arg starts with -- we are getoptLongOnly()
 	 */
-	if len(longOptions) > 0 && g.place != nargv[g.Optind] && (strings.HasPrefix(g.place, dash) || info.longOnly) {
+	if len(g.longOptions) > 0 && g.place != g.Args[g.Optind] && (strings.HasPrefix(g.place, dash) || g.optinfo.longOnly) { //revive:disable:line-length-limit
 		shortToo := false
 		if strings.HasPrefix(g.place, dash) {
 			g.place = g.place[1:] // --foo long option
-		} else if !strings.HasPrefix(g.place, ":") && info.HasOpt([]rune(g.place)[0]) {
+		} else if !strings.HasPrefix(g.place, ":") && g.optinfo.HasOpt([]rune(g.place)[0]) {
 			shortToo = true // could be short option too
 		}
 		var optchar rune
-		optchar, longIndex, err = g.parseLongOptions(nargv, info, longOptions, shortToo)
+		optchar, longIndex, err = g.parseLongOptions(shortToo)
 		if optchar != -1 {
 			g.place = ""
 			return optchar, longIndex, err
@@ -394,7 +433,7 @@ start:
 	// Otherwise, it is an unknown option character (or ':').
 	if optchar == '-' && g.place == "" {
 		return -1, 0, nil
-	} else if !info.HasOpt(optchar) {
+	} else if !g.optinfo.HasOpt(optchar) {
 		if g.place == "" {
 			g.Optind++
 		}
@@ -402,7 +441,7 @@ start:
 		g.Optopt = optchar
 		return BADCH, 0, err
 	}
-	if len(longOptions) > 0 && optchar == 'W' && info.w {
+	if len(g.longOptions) > 0 && optchar == 'W' && g.optinfo.w {
 		// -W long-option
 		if g.place != "" { // no space
 			//revive:disable:empty-block NOTHING
@@ -412,16 +451,16 @@ start:
 				g.place = ""
 				err := RecArgChar(optchar)
 				g.Optopt = optchar
-				return badarg(info), 0, err
+				return BADARG, 0, err
 			}
 			// white space
-			g.place = nargv[g.Optind]
+			g.place = g.Args[g.Optind]
 		}
-		optchar, match, err := g.parseLongOptions(nargv, info, longOptions, false)
+		optchar, match, err := g.parseLongOptions(false)
 		g.place = ""
 		return optchar, match, err
 	}
-	if info.opts[optchar] == NoArgument { // doesn't take argument
+	if g.optinfo.opts[optchar] == NoArgument { // doesn't take argument
 		if g.place == "" {
 			g.Optind++
 		}
@@ -430,22 +469,22 @@ start:
 		if g.place != "" { // no white space
 			g.Optarg = &g.place
 			// XXX: disable test for :: if PC? (GNU doesn't)
-		} else if info.opts[optchar] == RequiredArgument { // arg not optional
+		} else if g.optinfo.opts[optchar] == RequiredArgument { // arg not optional
 			g.Optind++
 			if g.Optind >= nargc { // no arg
 				g.place = ""
 				err := RecArgChar(optchar)
 				g.Optopt = optchar
-				return badarg(info), 0, err
+				return BADARG, 0, err
 			}
-			g.Optarg = &nargv[g.Optind]
-		} else if info.scanningMode != defaultPermute {
+			g.Optarg = &g.Args[g.Optind]
+		} else if g.optinfo.scanningMode != defaultPermute {
 			// If permutation is disabled, we can accept an
 			// optional arg separated by whitespace so long
 			// as it does not start with a dash (-).
-			if g.Optind+1 < len(nargv) && !strings.HasPrefix(nargv[g.Optind+1], dash) {
+			if g.Optind+1 < len(g.Args) && !strings.HasPrefix(g.Args[g.Optind+1], dash) {
 				g.Optind++
-				g.Optarg = &nargv[g.Optind]
+				g.Optarg = &g.Args[g.Optind]
 			}
 		}
 		g.place = ""
@@ -456,30 +495,12 @@ start:
 }
 
 // Loop parses argc/argv argument vectors like GNU's getopt.
-func (g *Getopt) Loop(nargv []string, options string) (rune, error) {
-	info := parseShortOptionSpec(options)
-	if !strings.HasPrefix(options, posixPrefix) && !strings.HasPrefix(options, inorderPrefix) {
-		// We don't pass FLAG_PERMUTE to getoptInternal() since
-		// the BSD getopt(3) (unlike GNU) has never done this.
-
-		// Furthermore, since many privileged programs call getopt()
-		// before dropping privileges it makes sense to keep things
-		// as simple (and bug-free) as possible.
-		info.scanningMode = posixlyCorrect
-	}
-	ch, _, err := g.getoptInternal(nargv, &info, nil)
+func (g *Getopt) Loop() (rune, error) {
+	ch, _, err := g.getoptInternal()
 	return ch, err
 }
 
 // LoopLong parses options like GNU's getopt_long.
-func (g *Getopt) LoopLong(nargv []string, options string, longOptions []Option) (rune, int, error) {
-	info := parseShortOptionSpec(options)
-	return g.getoptInternal(nargv, &info, longOptions)
-}
-
-// LoopLongOnly parses options like GNU's getopt_long_only.
-func (g *Getopt) LoopLongOnly(nargv []string, options string, longOptions []Option) (rune, int, error) {
-	info := parseShortOptionSpec(options)
-	info.longOnly = true
-	return g.getoptInternal(nargv, &info, longOptions)
+func (g *Getopt) LoopLong() (rune, int, error) {
+	return g.getoptInternal()
 }
