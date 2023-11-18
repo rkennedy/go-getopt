@@ -1,7 +1,6 @@
 package getopt_test
 
 import (
-	"bytes"
 	"testing"
 
 	. "github.com/onsi/gomega"
@@ -171,14 +170,14 @@ func TestShort(t *testing.T) {
 		t.Run(tc.label, func(t *testing.T) {
 			g := NewWithT(t)
 			gopt := New()
-			var buf bytes.Buffer
-			gopt.Out = &buf
-			for ch, err := gopt.Loop(tc.argv, tc.opts); err == nil && ch != -1; ch, err = gopt.Loop(tc.argv, tc.opts) { //revive:disable-line:empty-block,line-length-limit
+			var ch rune
+			var err error
+			for ch, err = gopt.Loop(tc.argv, tc.opts); err == nil && ch != -1; ch, err = gopt.Loop(tc.argv, tc.opts) { //revive:disable-line:empty-block,line-length-limit
 			}
 			if tc.expectErrmsg {
-				g.Expect(buf.String()).NotTo(Equal(""))
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(buf.String()).To(Equal(""))
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -191,14 +190,14 @@ func TestLong(t *testing.T) {
 		t.Run(tc.label, func(t *testing.T) {
 			g := NewWithT(t)
 			gopt := New()
-			var buf bytes.Buffer
-			gopt.Out = &buf
-			for ch, _, err := gopt.LoopLong(tc.argv, tc.opts, tc.longopts); err == nil && ch != -1; ch, _, err = gopt.LoopLong(tc.argv, tc.opts, tc.longopts) { //revive:disable-line:empty-block,line-length-limit
+			var ch rune
+			var err error
+			for ch, _, err = gopt.LoopLong(tc.argv, tc.opts, tc.longopts); err == nil && ch != -1; ch, _, err = gopt.LoopLong(tc.argv, tc.opts, tc.longopts) { //revive:disable-line:empty-block,line-length-limit
 			}
 			if tc.expectErrmsg {
-				g.Expect(buf.String()).NotTo(Equal(""))
+				g.Expect(err).To(HaveOccurred())
 			} else {
-				g.Expect(buf.String()).To(Equal(""))
+				g.Expect(err).NotTo(HaveOccurred())
 			}
 		})
 	}
@@ -217,10 +216,8 @@ func TestAmbiguous(t *testing.T) {
 	argv := []string{"program", "--on"}
 
 	gopt := New()
-	var buf bytes.Buffer
-	gopt.Out = &buf
-	ch, _, _ := gopt.LoopLong(argv, "12345", longopts)
+	ch, _, err := gopt.LoopLong(argv, "12345", longopts)
 
 	g.Expect(ch).To(Equal('?'))
-	g.Expect(buf.String()).To(Equal("ambiguous option -- on\n"))
+	g.Expect(err).To(MatchError(Ambig("on")))
 }

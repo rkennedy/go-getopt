@@ -4,7 +4,6 @@ package getopt
 
 import (
 	"fmt"
-	"io"
 	"os"
 	"strings"
 )
@@ -41,8 +40,6 @@ type Getopt struct {
 	Optopt   rune    // Optopt is a character checked for validity.
 	Optreset bool    // Optreset resets getopt.
 
-	Out io.Writer // Out is where error messages get printed.
-
 	place string // option letter processing
 
 	/* XXX: set Optreset to true rather than these two */
@@ -56,7 +53,6 @@ func New() *Getopt {
 		Opterr:      true,
 		Optind:      1,
 		Optopt:      '?',
-		Out:         os.Stderr,
 		nonoptStart: -1,
 		nonoptEnd:   -1,
 	}
@@ -98,23 +94,17 @@ func (e RecArgString) Error() string {
 }
 
 // Ambig is the error returned when an ambiguous long option is detected.
-type Ambig struct {
-	Length  int
-	Message string
-}
+type Ambig string
 
 func (e Ambig) Error() string {
-	return fmt.Sprintf("ambiguous option -- %.*s", e.Length, e.Message)
+	return fmt.Sprintf("ambiguous option -- %s", string(e))
 }
 
 // Noarg is the error returned when an argument is given for a long option that doesn't accept one.
-type Noarg struct {
-	Length  int
-	Message string
-}
+type Noarg string
 
 func (e Noarg) Error() string {
-	return fmt.Sprintf("option doesn't take an argument -- %.*s", e.Length, e.Message)
+	return fmt.Sprintf("option doesn't take an argument -- %s", string(e))
 }
 
 // IllOptChar is the error returned for an unknown short option.
@@ -236,10 +226,7 @@ func (g *Getopt) parseLongOptions(nargv []string, options *optinfo, longOptions 
 		}
 		if match != -1 {
 			// ambiguous abbreviation
-			err := Ambig{Length: currentArgvLen, Message: currentArgv}
-			if g.Opterr && !options.suppressPrintingErrors {
-				_, _ = fmt.Fprintln(g.Out, err.Error())
-			}
+			err := Ambig(currentArgv[:currentArgvLen])
 			g.Optopt = 0
 			return BADCH, 0, err
 		}
@@ -253,18 +240,12 @@ func (g *Getopt) parseLongOptions(nargv []string, options *optinfo, longOptions 
 			return -1, 0, nil
 		}
 		err := IllOptString(currentArgv)
-		if g.Opterr && !options.suppressPrintingErrors {
-			_, _ = fmt.Fprintln(g.Out, err.Error())
-		}
 		g.Optopt = 0
 		return BADCH, 0, err
 	}
 	/* option found */
 	if longOptions[match].HasArg == NoArgument && hasEqual >= 0 {
-		err := Noarg{Length: currentArgvLen, Message: currentArgv}
-		if g.Opterr && !options.suppressPrintingErrors {
-			_, _ = fmt.Fprintln(g.Out, err.Error())
-		}
+		err := Noarg(currentArgv[:currentArgvLen])
 		// XXX: GNU sets Optopt to Val regardless of Flag
 		if longOptions[match].Flag == nil {
 			g.Optopt = rune(longOptions[match].Val)
@@ -291,9 +272,6 @@ func (g *Getopt) parseLongOptions(nargv []string, options *optinfo, longOptions 
 	if longOptions[match].HasArg == RequiredArgument && g.Optarg == nil {
 		// Missing argument
 		err := RecArgString(currentArgv)
-		if g.Opterr && !options.suppressPrintingErrors {
-			_, _ = fmt.Fprintln(g.Out, err.Error())
-		}
 		// XXX: GNU sets Optopt to Val regardless of Flag
 		if longOptions[match].Flag == nil {
 			g.Optopt = rune(longOptions[match].Val)
@@ -394,7 +372,6 @@ start:
 	 *  2) the arg is not just "-"
 	 *  3) either the arg starts with -- we are getoptLongOnly()
 	 */
-	var optchar rune
 	if len(longOptions) > 0 && g.place != nargv[g.Optind] && (strings.HasPrefix(g.place, dash) || info.longOnly) {
 		shortToo := false
 		if strings.HasPrefix(g.place, dash) {
@@ -402,31 +379,26 @@ start:
 		} else if !strings.HasPrefix(g.place, ":") && info.HasOpt([]rune(g.place)[0]) {
 			shortToo = true /* could be short option too */
 		}
+		var optchar rune
 		optchar, longIndex, err = g.parseLongOptions(nargv, info, longOptions, shortToo)
 		if optchar != -1 {
 			g.place = ""
 			return optchar, longIndex, err
 		}
 	}
-	optchar = []rune(g.place)[0]
+	optchar := []rune(g.place)[0]
 	g.place = g.place[1:]
 
-	if optchar == ':' || (optchar == '-' && g.place == "") || !info.HasOpt(optchar) {
-		/*
-		 * If the user specified "-" and  '-' isn't listed in
-		 * options, return -1 (non-option) as per POSIX.
-		 * Otherwise, it is an unknown option character (or ':').
-		 */
-		if optchar == '-' && g.place == "" {
-			return -1, 0, nil
-		}
+	// If the user specified "-" and '-' isn't listed in
+	// options, return -1 (non-option) as per POSIX.
+	// Otherwise, it is an unknown option character (or ':').
+	if optchar == '-' && g.place == "" {
+		return -1, 0, nil
+	} else if !info.HasOpt(optchar) {
 		if g.place == "" {
 			g.Optind++
 		}
 		err := IllOptChar(optchar)
-		if g.Opterr && !info.suppressPrintingErrors {
-			_, _ = fmt.Fprintln(g.Out, err.Error())
-		}
 		g.Optopt = optchar
 		return BADCH, 0, err
 	}
@@ -439,9 +411,6 @@ start:
 			if g.Optind >= nargc { /* no arg */
 				g.place = ""
 				err := RecArgChar(optchar)
-				if g.Opterr && !info.suppressPrintingErrors {
-					_, _ = fmt.Fprintln(g.Out, err.Error())
-				}
 				g.Optopt = optchar
 				return badarg(info), 0, err
 			}
@@ -466,9 +435,6 @@ start:
 			if g.Optind >= nargc { /* no arg */
 				g.place = ""
 				err := RecArgChar(optchar)
-				if g.Opterr && !info.suppressPrintingErrors {
-					_, _ = fmt.Fprintln(g.Out, err.Error())
-				}
 				g.Optopt = optchar
 				return badarg(info), 0, err
 			}
