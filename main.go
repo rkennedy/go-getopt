@@ -42,7 +42,7 @@ type Getopt struct {
 
 	place string // option letter processing
 
-	/* XXX: set Optreset to true rather than these two */
+	// XXX: set Optreset to true rather than these two
 	nonoptStart int // first non option argument (for permute)
 	nonoptEnd   int // first option after non options (for permute)
 }
@@ -61,12 +61,12 @@ func New() *Getopt {
 type scanningMode int
 
 const (
-	defaultPermute scanningMode = iota /* permute non-options to the end of argv */
-	posixlyCorrect
-	argsInOrder /* treat non-options as args to option "-1" */
+	defaultPermute scanningMode = iota // permute non-options to the end of argv.
+	posixlyCorrect                     // stop scanning at the first non-option.
+	argsInOrder                        // treat non-options as args to option 1
 )
 
-/* return values */
+// return values
 const (
 	BADCH   rune = '?'
 	INORDER rune = 1
@@ -234,7 +234,7 @@ func (g *Getopt) parseLongOptions(nargv []string, options *optinfo, longOptions 
 		match = i
 	}
 	if match == -1 {
-		/* unknown option */
+		// unknown option
 		if shortToo {
 			g.Optind--
 			return -1, 0, nil
@@ -243,7 +243,7 @@ func (g *Getopt) parseLongOptions(nargv []string, options *optinfo, longOptions 
 		g.Optopt = 0
 		return BADCH, 0, err
 	}
-	/* option found */
+	// option found
 	if longOptions[match].HasArg == NoArgument && hasEqual >= 0 {
 		err := Noarg(currentArgv[:currentArgvLen])
 		// XXX: GNU sets Optopt to Val regardless of Flag
@@ -375,9 +375,9 @@ start:
 	if len(longOptions) > 0 && g.place != nargv[g.Optind] && (strings.HasPrefix(g.place, dash) || info.longOnly) {
 		shortToo := false
 		if strings.HasPrefix(g.place, dash) {
-			g.place = g.place[1:] /* --foo long option */
+			g.place = g.place[1:] // --foo long option
 		} else if !strings.HasPrefix(g.place, ":") && info.HasOpt([]rune(g.place)[0]) {
-			shortToo = true /* could be short option too */
+			shortToo = true // could be short option too
 		}
 		var optchar rune
 		optchar, longIndex, err = g.parseLongOptions(nargv, info, longOptions, shortToo)
@@ -403,36 +403,36 @@ start:
 		return BADCH, 0, err
 	}
 	if len(longOptions) > 0 && optchar == 'W' && info.w {
-		/* -W long-option */
-		if g.place != "" { /* no space */
+		// -W long-option
+		if g.place != "" { // no space
 			//revive:disable:empty-block NOTHING
 		} else {
 			g.Optind++
-			if g.Optind >= nargc { /* no arg */
+			if g.Optind >= nargc { // no arg
 				g.place = ""
 				err := RecArgChar(optchar)
 				g.Optopt = optchar
 				return badarg(info), 0, err
 			}
-			/* white space */
+			// white space
 			g.place = nargv[g.Optind]
 		}
 		optchar, match, err := g.parseLongOptions(nargv, info, longOptions, false)
 		g.place = ""
 		return optchar, match, err
 	}
-	if info.opts[optchar] == NoArgument { /* doesn't take argument */
+	if info.opts[optchar] == NoArgument { // doesn't take argument
 		if g.place == "" {
 			g.Optind++
 		}
-	} else { /* takes (optional) argument */
+	} else { // takes (optional) argument
 		g.Optarg = nil
-		if g.place != "" { /* no white space */
+		if g.place != "" { // no white space
 			g.Optarg = &g.place
-			/* XXX: disable test for :: if PC? (GNU doesn't) */
-		} else if info.opts[optchar] == RequiredArgument { /* arg not optional */
+			// XXX: disable test for :: if PC? (GNU doesn't)
+		} else if info.opts[optchar] == RequiredArgument { // arg not optional
 			g.Optind++
-			if g.Optind >= nargc { /* no arg */
+			if g.Optind >= nargc { // no arg
 				g.place = ""
 				err := RecArgChar(optchar)
 				g.Optopt = optchar
@@ -451,7 +451,7 @@ start:
 		g.place = ""
 		g.Optind++
 	}
-	/* dump back option letter */
+	// dump back option letter
 	return optchar, -1, nil
 }
 
@@ -459,14 +459,12 @@ start:
 func (g *Getopt) Loop(nargv []string, options string) (rune, error) {
 	info := parseShortOptionSpec(options)
 	if !strings.HasPrefix(options, posixPrefix) && !strings.HasPrefix(options, inorderPrefix) {
-		/*
-		 * We don't pass FLAG_PERMUTE to getoptInternal() since
-		 * the BSD getopt(3) (unlike GNU) has never done this.
-		 *
-		 * Furthermore, since many privileged programs call getopt()
-		 * before dropping privileges it makes sense to keep things
-		 * as simple (and bug-free) as possible.
-		 */
+		// We don't pass FLAG_PERMUTE to getoptInternal() since
+		// the BSD getopt(3) (unlike GNU) has never done this.
+
+		// Furthermore, since many privileged programs call getopt()
+		// before dropping privileges it makes sense to keep things
+		// as simple (and bug-free) as possible.
 		info.scanningMode = posixlyCorrect
 	}
 	ch, _, err := g.getoptInternal(nargv, &info, nil)
