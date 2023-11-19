@@ -221,3 +221,26 @@ func TestAmbiguous(t *testing.T) {
 	g.Expect(ch).To(Equal('?'))
 	g.Expect(err).To(MatchError(Ambig("on")))
 }
+
+func TestMissingArg(t *testing.T) {
+	// BZ 11039
+	t.Parallel()
+
+	t.Run("1", func(t *testing.T) {
+		t.Parallel()
+		g := NewWithT(t)
+		gopt := New([]string{"bug-getopt1", "-a"}, ":a:b")
+		ch, err := gopt.Loop()
+		g.Expect(ch).To(Equal(BADARG))
+		g.Expect(err).To(MatchError(RecArgChar('a')))
+	})
+	t.Run("2", func(t *testing.T) {
+		t.Parallel()
+		g := NewWithT(t)
+		gopt := New([]string{"bug-getopt1", "-b", "-a"}, ":a:b")
+		g.Expect(gopt.Loop()).To(Equal('b'))
+		ch, err := gopt.Loop()
+		g.Expect(ch).To(Equal(BADARG))
+		g.Expect(err).To(MatchError(RecArgChar('a')))
+	})
+}

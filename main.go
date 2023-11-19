@@ -33,10 +33,10 @@ type Option struct {
 }
 
 type optinfo struct {
-	scanningMode           scanningMode
-	w                      bool
-	longOnly               bool
-	opts                   map[rune]ArgumentDisposition
+	scanningMode scanningMode
+	w            bool
+	longOnly     bool
+	opts         map[rune]ArgumentDisposition
 }
 
 // Getopt is an option parser.
