@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	. "github.com/onsi/gomega"
+	. "github.com/onsi/gomega/gstruct"
 	. "github.com/rkennedy/go-getopt"
 )
 
@@ -170,9 +171,9 @@ func TestShort(t *testing.T) {
 		t.Run(tc.label, func(t *testing.T) {
 			g := NewWithT(t)
 			gopt := New(tc.argv, tc.opts)
-			var ch rune
+			var opt *Opt
 			var err error
-			for ch, err = gopt.Loop(); err == nil && ch != -1; ch, err = gopt.Loop() { //revive:disable-line:empty-block
+			for opt, err = gopt.Getopt(); err == nil && opt != nil; opt, err = gopt.Getopt() { //revive:disable-line:empty-block,line-length-limit
 			}
 			if tc.expectErrmsg {
 				g.Expect(err).To(HaveOccurred())
@@ -190,9 +191,9 @@ func TestLong(t *testing.T) {
 		t.Run(tc.label, func(t *testing.T) {
 			g := NewWithT(t)
 			gopt := NewLong(tc.argv, tc.opts, tc.longopts)
-			var ch rune
+			var opt *Opt
 			var err error
-			for ch, _, err = gopt.LoopLong(); err == nil && ch != -1; ch, _, err = gopt.LoopLong() { //revive:disable-line:empty-block,line-length-limit
+			for opt, err = gopt.GetoptLong(); err == nil && opt != nil; opt, err = gopt.GetoptLong() { //revive:disable-line:empty-block,line-length-limit
 			}
 			if tc.expectErrmsg {
 				g.Expect(err).To(HaveOccurred())
@@ -216,31 +217,54 @@ func TestAmbiguous(t *testing.T) {
 	argv := []string{"program", "--on"}
 
 	gopt := NewLong(argv, "12345", longopts)
-	ch, _, err := gopt.LoopLong()
-
-	g.Expect(ch).To(Equal('?'))
-	g.Expect(err).To(MatchError(Ambig("on")))
+	g.Expect(gopt.GetoptLong()).Error().
+		To(MatchError("option '--on' is ambiguous; possibilities: '--one' '--one-one' '--onto'"))
 }
 
 func TestMissingArg(t *testing.T) {
-	// BZ 11039
+	// https://sourceware.org/bugzilla/show_bug.cgi?id=11039
 	t.Parallel()
 
-	t.Run("1", func(t *testing.T) {
+	t.Run("case 1", func(t *testing.T) {
 		t.Parallel()
 		g := NewWithT(t)
 		gopt := New([]string{"bug-getopt1", "-a"}, ":a:b")
-		ch, err := gopt.Loop()
-		g.Expect(ch).To(Equal(BADARG))
-		g.Expect(err).To(MatchError(RecArgChar('a')))
+		g.Expect(gopt.Getopt()).Error().To(MatchError("option '-a' requires an argument"))
+	})
+	t.Run("case 2", func(t *testing.T) {
+		t.Parallel()
+		g := NewWithT(t)
+		gopt := New([]string{"bug-getopt1", "-b", "-a"}, ":a:b")
+		g.Expect(gopt.GetoptLong()).To(HaveValue(MatchFields(IgnoreExtras, Fields{
+			"C": Equal('b'),
+		})))
+		g.Expect(gopt.Getopt()).Error().To(MatchError("option '-a' requires an argument"))
+	})
+}
+
+func TestWSemicolon(t *testing.T) {
+	t.Parallel()
+
+	longopts := []Option{
+		{Name: "alpha", HasArg: NoArgument, Val: 'a'},
+		{Name: "beta", HasArg: RequiredArgument, Val: 'b'},
+	}
+	t.Run("1", func(t *testing.T) {
+		t.Parallel()
+		g := NewWithT(t)
+		gopt := NewLong([]string{"bug-getopt3", "-a;"}, "ab:W;", longopts)
+		g.Expect(gopt.GetoptLong()).To(HaveValue(MatchFields(IgnoreExtras, Fields{
+			"C": Equal('a'),
+		})))
+		g.Expect(gopt.GetoptLong()).Error().To(MatchError("unrecognized option '-;'"))
 	})
 	t.Run("2", func(t *testing.T) {
 		t.Parallel()
 		g := NewWithT(t)
-		gopt := New([]string{"bug-getopt1", "-b", "-a"}, ":a:b")
-		g.Expect(gopt.Loop()).To(Equal('b'))
-		ch, err := gopt.Loop()
-		g.Expect(ch).To(Equal(BADARG))
-		g.Expect(err).To(MatchError(RecArgChar('a')))
+		gopt := NewLong([]string{"bug-getopt3", "-a:"}, "ab:W;", longopts)
+		g.Expect(gopt.GetoptLong()).To(HaveValue(MatchFields(IgnoreExtras, Fields{
+			"C": Equal('a'),
+		})))
+		g.Expect(gopt.GetoptLong()).Error().To(MatchError("unrecognized option '-:'"))
 	})
 }
