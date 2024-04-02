@@ -267,4 +267,25 @@ func TestWSemicolon(t *testing.T) {
 		})))
 		g.Expect(gopt.GetoptLong()).Error().To(MatchError("unrecognized option '-:'"))
 	})
+	t.Run("3", func(t *testing.T) {
+		t.Parallel()
+		g := NewWithT(t)
+		gopt := New([]string{"program", "-W", "-;"}, "W;")
+		g.Expect(gopt.Getopt()).To(HaveValue(MatchFields(IgnoreExtras, Fields{
+			"C": Equal('W'),
+		})))
+		g.Expect(gopt.Getopt()).Error().To(MatchError("unrecognized option '-;'"))
+	})
+	t.Run("reads third argument", func(t *testing.T) {
+		t.Parallel()
+		g := NewWithT(t)
+		gopt := NewLong([]string{"program", "-W", "opt", "arg"}, "W;", []Option{
+			{Name: "opt", HasArg: RequiredArgument},
+		})
+		g.Expect(gopt.Getopt()).To(HaveValue(MatchAllFields(Fields{
+			"C":       Equal(rune(0)),
+			"Arg":     HaveValue(Equal("arg")),
+			"LongInd": Equal(0),
+		})))
+	})
 }

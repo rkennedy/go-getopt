@@ -190,9 +190,7 @@ func (g *Getopt) Reset(args []string, opts string) {
 // option specifications given.
 //
 // If opts includes 'W' followed by ';', then a GNU extension is enabled that allows long options to be specified as
-// arguments to the short option '-W'. The argument sequence '-W foo=bar' will behave just as if it were '--foo=bar'. If
-// the matched long option has a required argument, then it must be given along with the name, separated by '='; the
-// '-W' syntax will not reach into a third argument, only the second.
+// arguments to the short option '-W'. The argument sequence '-W foo=bar' will behave just as if it were '--foo=bar'.
 func (g *Getopt) ResetLong(args []string, opts string, longOptions []Option) {
 	g.Reset(args, opts)
 	g.longOptions = longOptions
