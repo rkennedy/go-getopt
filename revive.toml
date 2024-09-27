@@ -15,7 +15,12 @@ arguments = [7]
 [rule.cyclomatic]
 disabled = true  # We're only using cognitive complexity.
 [rule.dot-imports]
-arguments = [{ allowedPackages = ["github.com/onsi/gomega", "github.com/onsi/gomega/gstruct", "github.com/rkennedy/go-getopt"]}]
+arguments = [{ allowedPackages = [
+  "github.com/onsi/ginkgo/v2",
+  "github.com/onsi/gomega",
+  "github.com/onsi/gomega/gstruct",
+  "github.com/rkennedy/go-getopt",
+]}]
 [rule.file-header]
 disabled = true  # Not useful here. Use pre-commit to enforce copyright, if needed.
 [rule.flag-parameter]

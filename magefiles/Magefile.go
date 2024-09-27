@@ -14,13 +14,18 @@ import (
 // thisDir is the name of the directory, relative to the main module directory, where _this_ module and its go.mod file
 // live.
 const thisDir = "magefiles"
+const binDir = "bin"
 
 func goimportsBin() string {
-	return filepath.Join("bin", "goimports")
+	return filepath.Join(binDir, "goimports")
 }
 
 func reviveBin() string {
-	return filepath.Join("bin", "revive")
+	return filepath.Join(binDir, "revive")
+}
+
+func ginkgoBin() string {
+	return filepath.Join(binDir, "ginkgo")
 }
 
 func logV(s string, args ...any) {
@@ -47,18 +52,13 @@ func Lint(ctx context.Context) error {
 }
 
 // Test runs unit tests.
-func Test(ctx context.Context) error {
-	return magehelper.Test(ctx)
-}
-
-// RunTest runs the specified package's tests.
-func RunTest(ctx context.Context, pkg string) error {
-	return magehelper.RunTest(ctx, pkg)
+func Test(ctx context.Context) {
+	mg.CtxDeps(ctx, magehelper.Test().UseGinkgo(ginkgoBin()))
 }
 
 // BuildTests build all the tests.
-func BuildTests(ctx context.Context) error {
-	return magehelper.BuildTests(ctx)
+func BuildTests(ctx context.Context) {
+	mg.CtxDeps(ctx, magehelper.BuildTests().UseGinkgo(ginkgoBin()))
 }
 
 // Check runs the test and lint targets.
