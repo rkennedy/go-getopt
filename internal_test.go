@@ -22,7 +22,7 @@ func optFields(ordering, w, opts types.GomegaMatcher) Fields {
 var _ = Describe("Option parsing", func() {
 	Context("with nearly empty options", func() {
 		DescribeTableSubtree("with no environment variabe set",
-			func(opts string, expected ordering) {
+			func(opts string, expected Ordering) {
 				BeforeEach(func() {
 					Expect(os.Unsetenv(PosixlyCorrect)).To(Succeed())
 				})
@@ -41,7 +41,7 @@ var _ = Describe("Option parsing", func() {
 		)
 
 		DescribeTableSubtree("in posixly correct mode",
-			func(opts string, expected ordering) {
+			func(opts string, expected Ordering) {
 				BeforeEach(func() {
 					Expect(os.Setenv(PosixlyCorrect, "yes")).To(Succeed())
 				})

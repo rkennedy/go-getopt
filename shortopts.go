@@ -8,7 +8,7 @@ import (
 // optinfo holds the result of parsing the short option specs. Fields are exported so they can be tested with
 // gomega/gstruct, but the type itself is not exported.
 type optinfo struct {
-	Ordering ordering
+	Ordering Ordering
 	W        bool
 	Opts     map[rune]ArgumentDisposition
 }
