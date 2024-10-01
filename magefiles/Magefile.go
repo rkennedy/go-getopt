@@ -1,24 +1,31 @@
-//go:build mage
-
 // This magefile determines how to build and test the project.
 package main
 
 import (
 	"context"
 	"fmt"
-	"path"
+	"path/filepath"
 
 	"github.com/magefile/mage/mg"
-	"github.com/magefile/mage/sh"
 	"github.com/rkennedy/magehelper"
+	"github.com/rkennedy/magehelper/tools"
 )
 
+// thisDir is the name of the directory, relative to the main module directory, where _this_ module and its go.mod file
+// live.
+const thisDir = "magefiles"
+const binDir = "bin"
+
 func goimportsBin() string {
-	return path.Join("bin", "goimports")
+	return filepath.Join(binDir, "goimports")
 }
 
 func reviveBin() string {
-	return path.Join("bin", "revive")
+	return filepath.Join(binDir, "revive")
+}
+
+func ginkgoBin() string {
+	return filepath.Join(binDir, "ginkgo")
 }
 
 func logV(s string, args ...any) {
@@ -30,32 +37,28 @@ func logV(s string, args ...any) {
 // Imports formats the code and updates the import statements.
 func Imports(ctx context.Context) error {
 	mg.CtxDeps(ctx,
-		magehelper.ToolDep(goimportsBin(), "golang.org/x/tools/cmd/goimports"),
+		tools.Goimports(goimportsBin()).ModDir(thisDir),
 	)
-	return sh.RunV(goimportsBin(), "-w", "-l", ".")
+	return nil
 }
 
 // Lint performs static analysis on all the code in the project.
 func Lint(ctx context.Context) error {
-	mg.CtxDeps(ctx,
+	mg.SerialCtxDeps(ctx,
 		Generate,
+		tools.Revive(reviveBin(), "revive.toml").ModDir(thisDir),
 	)
-	return magehelper.Revive(ctx, reviveBin(), "revive.toml")
+	return nil
 }
 
 // Test runs unit tests.
-func Test(ctx context.Context) error {
-	return magehelper.Test(ctx)
-}
-
-// RunTest runs the specified package's tests.
-func RunTest(ctx context.Context, pkg string) error {
-	return magehelper.RunTest(ctx, pkg)
+func Test(ctx context.Context) {
+	mg.CtxDeps(ctx, magehelper.Test().UseGinkgo(ginkgoBin()))
 }
 
 // BuildTests build all the tests.
-func BuildTests(ctx context.Context) error {
-	return magehelper.BuildTests(ctx)
+func BuildTests(ctx context.Context) {
+	mg.CtxDeps(ctx, magehelper.BuildTests().UseGinkgo(ginkgoBin()))
 }
 
 // Check runs the test and lint targets.

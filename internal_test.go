@@ -2,8 +2,8 @@ package getopt
 
 import (
 	"os"
-	"testing"
 
+	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 	"github.com/onsi/gomega/types"
@@ -19,107 +19,85 @@ func optFields(ordering, w, opts types.GomegaMatcher) Fields {
 	}
 }
 
-func TestEmpty(t *testing.T) {
-	t.Setenv(PosixlyCorrect, "foo")
-	g := NewWithT(t)
-	g.Expect(os.Unsetenv(PosixlyCorrect)).To(Succeed())
+var _ = Describe("Option parsing", func() {
+	Context("with nearly empty options", func() {
+		DescribeTableSubtree("with no environment variabe set",
+			func(opts string, expected Ordering) {
+				BeforeEach(func() {
+					Expect(os.Unsetenv(PosixlyCorrect)).To(Succeed())
+				})
 
-	cases := map[string]ordering{
-		"":  Permute,
-		"-": ReturnInOrder,
-		"+": RequireOrder,
-	}
-	for k, v := range cases {
-		k, v := k, v
-		t.Run(k, func(t *testing.T) {
-			g := NewWithT(t)
+				It("parses the options", func() {
+					Expect(parseShortOptionSpec(opts)).To(MatchAllFields(optFields(
+						Equal(expected),
+						BeFalse(),
+						BeEmpty(),
+					)))
+				})
+			},
+			Entry(nil, "", Permute),
+			Entry(nil, "-", ReturnInOrder),
+			Entry(nil, "+", RequireOrder),
+		)
 
-			g.Expect(parseShortOptionSpec(k)).To(MatchAllFields(optFields(
-				Equal(v),
-				BeFalse(),
-				BeEmpty(),
-			)))
-		})
-	}
-}
+		DescribeTableSubtree("in posixly correct mode",
+			func(opts string, expected Ordering) {
+				BeforeEach(func() {
+					Expect(os.Setenv(PosixlyCorrect, "yes")).To(Succeed())
+				})
 
-func TestPosixEnvironment(t *testing.T) {
-	t.Setenv(PosixlyCorrect, "yes")
+				It("parses the options", func() {
+					Expect(parseShortOptionSpec(opts)).To(MatchAllFields(optFields(
+						Equal(expected),
+						BeFalse(),
+						BeEmpty(),
+					)))
+				})
+			},
+			Entry(nil, "", RequireOrder),
+			Entry(nil, "-", ReturnInOrder), // This override environment variable.
+			Entry(nil, "+", RequireOrder),
+		)
 
-	cases := map[string]ordering{
-		"":  RequireOrder,
-		"-": ReturnInOrder, // This override environment variable.
-		"+": RequireOrder,
-	}
-	for k, v := range cases {
-		k, v := k, v
-		t.Run(k, func(t *testing.T) {
-			g := NewWithT(t)
+		// Leading colon should be allowed, but also have no effect.
+		DescribeTable("accepts but ignores leading colon",
+			func(opts string) {
+				Expect(parseShortOptionSpec(opts)).To(MatchAllFields(optFields(
+					Ignore(),
+					BeFalse(),
+					BeEmpty(),
+				)))
+			},
+			Entry(nil, ":"),
+			Entry(nil, "-:"),
+			Entry(nil, "+:"),
+		)
+	})
 
-			g.Expect(parseShortOptionSpec(k)).To(MatchAllFields(optFields(
-				Equal(v),
-				BeFalse(),
-				BeEmpty(),
-			)))
-		})
-	}
-}
-
-func TestLeadingColon(t *testing.T) {
-	// Leading colon should be allowed, but also have no effect.
-	t.Parallel()
-	cases := []string{
-		":",
-		"-:",
-		"+:",
-	}
-	for _, s := range cases {
-		s := s
-		t.Run(s, func(t *testing.T) {
-			t.Parallel()
-			g := NewWithT(t)
-			g.Expect(parseShortOptionSpec(s)).To(MatchAllFields(optFields(
-				Ignore(),
-				BeFalse(),
-				BeEmpty(),
-			)))
-		})
-	}
-}
-
-func TestWExtension(t *testing.T) {
-	t.Parallel()
-
-	cases := map[string]Fields{
-		"W;": optFields(Ignore(), BeTrue(), MatchAllKeys(Keys{
+	DescribeTable("handles W options",
+		func(opts string, fields Fields) {
+			Expect(parseShortOptionSpec(opts)).To(MatchAllFields(fields))
+		},
+		Entry(nil, "W;", optFields(Ignore(), BeTrue(), MatchAllKeys(Keys{
 			'W': Equal(NoArgument),
-		})),
-		";W": optFields(Ignore(), BeFalse(), MatchAllKeys(Keys{
+		}))),
+		Entry(nil, ";W", optFields(Ignore(), BeFalse(), MatchAllKeys(Keys{
 			';': Equal(NoArgument),
 			'W': Equal(NoArgument),
-		})),
-		"w;": optFields(Ignore(), BeFalse(), MatchAllKeys(Keys{
+		}))),
+		Entry(nil, "w;", optFields(Ignore(), BeFalse(), MatchAllKeys(Keys{
 			'w': Equal(NoArgument),
 			';': Equal(NoArgument),
-		})),
-		"W;:": optFields(Ignore(), BeTrue(), MatchAllKeys(Keys{
+		}))),
+		Entry(nil, "W;:", optFields(Ignore(), BeTrue(), MatchAllKeys(Keys{
 			'W': Equal(NoArgument),
 			':': Equal(NoArgument),
-		})),
-		"W:": optFields(Ignore(), BeFalse(), MatchAllKeys(Keys{
+		}))),
+		Entry(nil, "W:", optFields(Ignore(), BeFalse(), MatchAllKeys(Keys{
 			'W': Equal(RequiredArgument),
-		})),
-		"W::": optFields(Ignore(), BeFalse(), MatchAllKeys(Keys{
+		}))),
+		Entry(nil, "W::", optFields(Ignore(), BeFalse(), MatchAllKeys(Keys{
 			'W': Equal(OptionalArgument),
-		})),
-	}
-
-	for k, v := range cases {
-		k, v := k, v
-		t.Run(k, func(t *testing.T) {
-			t.Parallel()
-			g := NewWithT(t)
-			g.Expect(parseShortOptionSpec(k)).To(MatchAllFields(v))
-		})
-	}
-}
+		}))),
+	)
+})

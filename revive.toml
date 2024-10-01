@@ -3,29 +3,50 @@ severity = "warning"
 confidence = 0.8
 enableAllRules = true
 
+exclude = [
+  # Each example is self-contained.
+  "errors_test.go",
+]
+
 [rule.add-constant]
 arguments = [{ allowStrs = "\"\"", allowInts = "0,1" }]
+
 [rule.argument-limit]
 arguments = [4]
+
 [rule.banned-characters]
 disabled = true  # Not useful.
+
 [rule.cognitive-complexity]
 disabled = true  # Getopt has very complex rules.
 arguments = [7]
+
 [rule.cyclomatic]
 disabled = true  # We're only using cognitive complexity.
+
 [rule.dot-imports]
-arguments = [{ allowedPackages = ["github.com/onsi/gomega", "github.com/onsi/gomega/gstruct", "github.com/rkennedy/go-getopt"]}]
+arguments = [{ allowedPackages = [
+  "github.com/onsi/ginkgo/v2",
+  "github.com/onsi/gomega",
+  "github.com/onsi/gomega/gstruct",
+  "github.com/rkennedy/go-getopt",
+]}]
+
 [rule.file-header]
 disabled = true  # Not useful here. Use pre-commit to enforce copyright, if needed.
+
 [rule.flag-parameter]
 disabled = true  # Not worth exploring alternatives right now.
+
 [rule.function-length]
 disabled = true  # Getopt has very ling functions.
 arguments = [10, 0]
+
 [rule.function-result-limit]
 disabled = true  # Not a useful metric for me.
+
 [rule.line-length-limit]
 arguments = [120]
+
 [rule.max-public-structs]
 disabled = true  # We don't care about this limit.

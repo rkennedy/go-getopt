@@ -4,7 +4,7 @@ set -euo pipefail
 script_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" &>/dev/null && pwd)
 readonly script_dir
 readonly cache_volume=go-cache-getopt
-readonly golang=docker.io/library/golang:1.22.1-alpine
+readonly golang=docker.io/library/golang:1.23.1-alpine
 
 readonly cache_path=/go-cache
 
@@ -62,10 +62,12 @@ g sh -x <<END
 set -euo pipefail
 apk add --no-cache git
 if ${update}; then
-    go get -u
+    find -name go.mod -exec /bin/sh -c 'cd \$(dirname {}) && go get -u' ';'
 fi
-go mod tidy -go 1.22
-go run mage.go check
+find -name go.mod -exec /bin/sh -c 'cd \$(dirname {}) && go mod tidy -go 1.23' ';'
+
+(cd magefiles && go build -o ../bin/mage mage.go)
+bin/mage -v check
 END
 
 # vim: et sw=4 ts=4
