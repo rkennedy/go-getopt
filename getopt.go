@@ -257,7 +257,7 @@ func (g *Getopt) exchange() {
 //
 // If the value returned is nil, it was not actually a long option, the state is unchanged, and the argument should be
 // processed as a set of short options (this can only happen when longOnly is true). Otherwise, the option (and its
-// argument, if any) have been consumed and the return value is the value to return from getoptInternalR.
+// argument, if any) have been consumed and the return value is the value to return from getoptInternal.
 func (g *Getopt) processLongOption(longOnly bool, prefix string) (*Opt, error) {
 	namelen := slices.Index(g.nextChar, '=')
 	if namelen == -1 {
@@ -364,7 +364,7 @@ func nonoption(s string) bool {
 	return !strings.HasPrefix(s, dash) || len(s) == 1
 }
 
-func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
+func (g *Getopt) getoptInternal(longOnly bool) (*Opt, error) {
 	if len(g.Args) < 1 {
 		return nil, nil
 	}
@@ -531,8 +531,4 @@ func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
 		C:   c,
 		Arg: arg,
 	}, nil
-}
-
-func (g *Getopt) getoptInternal(longOnly bool) (*Opt, error) {
-	return g.getoptInternalR(longOnly)
 }
