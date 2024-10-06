@@ -32,7 +32,7 @@ const (
 // defining the [Option] list for long options.
 type ArgumentDisposition int
 
-// These values are used for the HasArg field of Options.
+// These [ArgumentDisposition] values are used for the HasArg field of [Option]s.
 const (
 	NoArgument       ArgumentDisposition = iota // The option does not take an argument.
 	RequiredArgument                            // The option requires an argument.
@@ -65,9 +65,9 @@ type Ordering int
 const (
 	// RequireOrder means options that follow non-option arguments are not recognized as options. Getopt will stop
 	// processing the argument list when the first non-option is seen. This mode can be useful when implementing a tool
-	// that has subcommands, where the main command and the subcommands have their separate sets of options.
-	// This behavior is what POSIX specifies should happen. To use this mode even when POSIXLY_CORRECT is not set, start
-	// the short option specification with a '+'.
+	// that has subcommands, where the main command and the subcommands have their separate sets of options. This
+	// behavior is what POSIX specifies should happen. To use this mode even when POSIXLY_CORRECT is not set, start the
+	// short option specification with a '+'.
 	RequireOrder Ordering = iota
 
 	// Permute means Getopt will permute the contents of Args as it scans, so that eventually all the non-options are at
@@ -75,10 +75,10 @@ const (
 	// environment variable is set at the time the [Getopt] struct is initialized.
 	Permute
 
-	// ReturnInOrder is an option available to programs that were written to expect options and other arguments in
-	// any order and that care about the ordering of the two. In this mode, non-option arguments are returned by
-	// [Getopt] as though they belong to an option with a character code of 1. To request this ordering behavior, start
-	// the short option specification with a '-'.
+	// ReturnInOrder is an option available to programs that were written to expect options and other arguments in any
+	// order and that care about the ordering of the two. In this mode, non-option arguments are returned by [Getopt] as
+	// though they belong to an option with a character code of 1. To request this ordering behavior, start the short
+	// option specification with a '-'.
 	ReturnInOrder
 )
 
@@ -90,8 +90,8 @@ type Getopt struct {
 
 	optind int // Optind is the index into parent argv vector.
 
-	// The rest of the argument to be scanned in the option-element in which the last option character we returned
-	// was found. This allows us to pick up the scan where we left off.
+	// The rest of the argument to be scanned in the option-element in which the last option character we returned was
+	// found. This allows us to pick up the scan where we left off.
 	//
 	// If this is empty, it means to resume the scan by advancing to the next argument.
 	nextChar []rune
@@ -100,7 +100,7 @@ type Getopt struct {
 	lastNonopt  int // Index in Args after the last non-option that was skipped.
 }
 
-// Opt is a result from [Getopt].
+// Opt is a result from parsing one option off a given argument list.
 //
 // If C is 0, then a long option was matched, Flag pointed at a variable, and the variable has been assigned a value
 // from Val. Opt.Arg holds the argument for that option, if any, and LongInd holds the index of the long option that
@@ -116,8 +116,8 @@ type Opt struct {
 	LongInd int
 }
 
-// Optind returns the argument index of the next argument to be scanned. When [Getopt] returns -1, Optind will be the
-// index of the first non-option element in Args, which is where the caller should pick up scanning.
+// Optind returns the argument index of the next argument to be scanned. When the returned [Opt] pointer is nil, Optind
+// will be the index of the first non-option element in Args, which is where the caller should pick up scanning.
 func (g *Getopt) Optind() int {
 	return g.optind
 }
@@ -128,17 +128,17 @@ func (g *Getopt) Optind() int {
 // of this element (aside from the initial '-') are option characters. If Getopt is called repeatedly, it returns
 // successively each of the option characters from each of the option elements.
 //
-// If Getopt finds another option character, it returns an Opt and updates [Optind] so that the next call to Getopt can
-// resume the scan with the next option character or argument.
+// If Getopt finds another option character, it returns an [Opt] pointer and updates [Getopt.Optind] so that the next
+// call to Getopt can resume the scan with the next option character or argument.
 //
-// If there are no more option characters, Getopt returns nil. Then [Optind] is the index in Args of the first argument
-// that is not an option. (The arguments have been permuted so that those that are not options now come last.)
+// If there are no more option characters, Getopt returns nil. Then [Getopt.Optind] is the index in Args of the first
+// argument that is not an option. (The arguments have been permuted so that those that are not options now come last.)
 //
 // If an option character is seen that was not listed in the opt string when calling [New] or [NewLong], then Getopt
 // returns an [UnrecognizedOptionError]. It does not print messages to stderr; in that respect, it behaves as if the
 // Posix value opterr is always false.
 //
-// If an option wants an argument, then the following text in the same Args element, or the text of the following Args
+// If an option wants an argument, then the subsequent text in the same Args element, or the text of the next Args
 // element, is returned in Opt.Arg. If the option's argument is optional, then if there is text in the current Args
 // element, it is returned in Opt.Arg. Otherwise, Opt.Arg will be nil.
 //
@@ -152,13 +152,13 @@ func (g *Getopt) Getopt() (*Opt, error) {
 	return g.getoptInternal(false)
 }
 
-// GetoptLong is identical to Getopt.
+// GetoptLong is identical to [Getopt.Getopt].
 func (g *Getopt) GetoptLong() (*Opt, error) {
 	return g.Getopt()
 }
 
-// GetoptLongOnly is identical to Getopt and GetoptLong, except that '-' as well as '--' can introduce long-named
-// options.
+// GetoptLongOnly is identical to [Getopt.Getopt] and [Getopt.GetoptLong], except that '-' as well as '--' can introduce
+// long-named options.
 func (g *Getopt) GetoptLongOnly() (*Opt, error) {
 	return g.getoptInternal(true)
 }
@@ -255,7 +255,7 @@ func (g *Getopt) exchange() {
 // Process the argument starting with nextChar as a long option. optind should *not* have been advanced over this
 // argument.
 //
-// If the value returned is -1, it was not actually a long option, the state is unchanged, and the argument should be
+// If the value returned is nil, it was not actually a long option, the state is unchanged, and the argument should be
 // processed as a set of short options (this can only happen when longOnly is true). Otherwise, the option (and its
 // argument, if any) have been consumed and the return value is the value to return from getoptInternalR.
 func (g *Getopt) processLongOption(longOnly bool, prefix string) (*Opt, error) {
@@ -265,7 +265,7 @@ func (g *Getopt) processLongOption(longOnly bool, prefix string) (*Opt, error) {
 	}
 	nameend := g.nextChar[namelen:]
 
-	// First look for an exact match, counting the options as a side effect.
+	// First, look for an exact match.
 	targetName := string(g.nextChar[:namelen])
 	optionIndex := slices.IndexFunc(g.longOptions, func(p Option) bool {
 		return targetName == p.Name
@@ -305,8 +305,8 @@ func (g *Getopt) processLongOption(longOnly bool, prefix string) (*Opt, error) {
 	}
 
 	if pfound == nil {
-		// Can't find it as a long option. If this is not GetoptLongOnly, or the option starts with '--' or is
-		// not a valid short option, then it's an error.
+		// Can't find it as a long option. If this is not GetoptLongOnly, or the option starts with '--' or is not a
+		// valid short option, then it's an error.
 		if !longOnly || g.Args[g.optind][1] == '-' || !g.shortOptions.HasOpt(g.nextChar[0]) {
 			unrecog := UnrecognizedOptionError{
 				Option: string(g.nextChar),
@@ -372,8 +372,8 @@ func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
 	if len(g.nextChar) == 0 {
 		// Advance to the next ARGV-element.
 
-		// Give FIRST_NONOPT & LAST_NONOPT rational values if OPTIND has been moved back by the user (who may
-		// also have changed the arguments).
+		// Give FIRST_NONOPT & LAST_NONOPT rational values if OPTIND has been moved back by the user (who may also have
+		// changed the arguments).
 		if g.lastNonopt > g.optind {
 			g.lastNonopt = g.optind
 		}
@@ -382,9 +382,8 @@ func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
 		}
 
 		if g.shortOptions.Ordering == Permute {
-			// If we have just processed some options following
-			// some non-options, exchange them so that the options
-			// come first.
+			// If we have just processed some options following some non-options, exchange them so that the options come
+			// first.
 			if g.firstNonopt != g.lastNonopt && g.lastNonopt != g.optind {
 				g.exchange()
 			} else if g.lastNonopt != g.optind {
@@ -398,9 +397,8 @@ func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
 			g.lastNonopt = g.optind
 		}
 
-		// The special ARGV-element '--' means premature end of options. Skip it like a null option, then
-		// exchange with previous non-options as if it were an option, then skip everything else like a
-		// non-option.
+		// The special ARGV-element '--' means premature end of options. Skip it like a null option, then exchange with
+		// previous non-options as if it were an option, then skip everything else like a non-option.
 		if g.optind != len(g.Args) && g.Args[g.optind] == argumentTerminator {
 			g.optind++
 
@@ -414,19 +412,19 @@ func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
 			g.optind = len(g.Args)
 		}
 
-		// If we have done all the ARGV-elements, stop the scan and back over any non-options that we skipped
-		// and permuted.
+		// If we have done all the ARGV-elements, stop the scan and back over any non-options that we skipped and
+		// permuted.
 		if g.optind == len(g.Args) {
-			// Set the next-arg-index to point at the non-options that we previously skipped, so the caller
-			// will digest them.
+			// Set the next-arg-index to point at the non-options that we previously skipped, so the caller will digest
+			// them.
 			if g.firstNonopt != g.lastNonopt {
 				g.optind = g.firstNonopt
 			}
 			return nil, nil
 		}
 
-		// If we have come to a non-option and did not permute it, either stop the scan or describe it to the
-		// caller and pass it by.
+		// If we have come to a non-option and did not permute it, either stop the scan or describe it to the caller and
+		// pass it by.
 		if nonoption(g.Args[g.optind]) {
 			if g.shortOptions.Ordering == RequireOrder {
 				return nil, nil
@@ -448,13 +446,12 @@ func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
 				return g.processLongOption(longOnly, argumentTerminator)
 			}
 
-			// If longOnly and the ARGV-element has the form "-f", where f is a valid short option, don't
-			// consider it an abbreviated form of a long option that starts with f. Otherwise there would be
-			// no way to give the -f short option.
+			// If longOnly and the ARGV-element has the form "-f", where f is a valid short option, don't consider it an
+			// abbreviated form of a long option that starts with f. Otherwise there would be no way to give the -f
+			// short option.
 			//
-			// On the other hand, if there's a long option "fubar" and the ARGV-element is "-fu", do
-			// consider that an abbreviation of the long option, just like "--fu", and not "-f" with arg
-			// "u".
+			// On the other hand, if there's a long option "fubar" and the ARGV-element is "-fu", do consider that an
+			// abbreviation of the long option, just like "--fu", and not "-f" with arg "u".
 			//
 			// This distinction seems to be the most useful approach.
 			if longOnly && (len(g.Args[g.optind]) > 1 || !g.shortOptions.HasOpt([]rune(g.Args[g.optind])[1])) {
@@ -516,8 +513,7 @@ func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
 		if len(g.nextChar) != 0 {
 			s := string(g.nextChar)
 			arg = &s
-			// We've ended this ARGV-element by taking the rest as an arg. We must advance to the next
-			// element now.
+			// We've ended this ARGV-element by taking the rest as an arg. We must advance to the next element now.
 			g.optind++
 		} else if g.optind == len(g.Args) {
 			return nil, ArgumentRequiredError{
@@ -525,8 +521,7 @@ func (g *Getopt) getoptInternalR(longOnly bool) (*Opt, error) {
 				prefix: dash,
 			}
 		} else {
-			// We already incremented 'optind' once; increment it again when taking next ARGV-elt as
-			// argument.
+			// We already incremented 'optind' once; increment it again when taking next ARGV-elt as argument.
 			arg = &g.Args[g.optind]
 			g.optind++
 		}
