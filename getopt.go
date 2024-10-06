@@ -2,7 +2,8 @@
 //
 // Differences from Posix getopt:
 //  1. There are no global variables. All operations are performed on a Getopt struct that maintains state between
-//     successive calls.
+//     successive calls. To read an option's argument value, read [Opt.Arg] instead of optarg. To reset option-parsing,
+//     create a new [Getopt] struct instead of assign optreset.
 //  2. The opterr setting is permanently false. Errors are never printed anywhere by this library. Instead, errors are
 //     returned and the caller can choose what to do with them. The text of the errors corresponds to messages that
 //     would be printed by GNU getopt. The leading ':' in the option spec that controls error-reporting is accepted for
@@ -38,8 +39,8 @@ const (
 	OptionalArgument                            // The option takes an optional argument.
 )
 
-// Option describes the long-named options requested by the application. The longopts arguments to [NewLong] and
-// [ResetLong] are slices of this type.
+// Option describes the long-named options requested by the application. The longopts argument to [NewLong] is a slice
+// of this type.
 //
 // If Flag is not nil, then it points to a variable that will have its value set to Val when the option is found, but
 // will be left unchanged if the option is not found.
@@ -87,8 +88,7 @@ type Getopt struct {
 	shortOptions optinfo
 	longOptions  []Option
 
-	optind   int  // Optind is the index into parent argv vector.
-	optreset bool // Optreset resets getopt.
+	optind int // Optind is the index into parent argv vector.
 
 	// The rest of the argument to be scanned in the option-element in which the last option character we returned
 	// was found. This allows us to pick up the scan where we left off.
@@ -134,9 +134,9 @@ func (g *Getopt) Optind() int {
 // If there are no more option characters, Getopt returns nil. Then [Optind] is the index in Args of the first argument
 // that is not an option. (The arguments have been permuted so that those that are not options now come last.)
 //
-// If an option character is seen that was not listed in the opt string when calling New or Reset, then Getopt returns
-// an [UnrecognizedOptionError]. It does not print messages to stderr; in that respect, it behaves as if the Posix value
-// opterr is always false.
+// If an option character is seen that was not listed in the opt string when calling [New] or [NewLong], then Getopt
+// returns an [UnrecognizedOptionError]. It does not print messages to stderr; in that respect, it behaves as if the
+// Posix value opterr is always false.
 //
 // If an option wants an argument, then the following text in the same Args element, or the text of the following Args
 // element, is returned in Opt.Arg. If the option's argument is optional, then if there is text in the current Args
@@ -163,10 +163,9 @@ func (g *Getopt) GetoptLongOnly() (*Opt, error) {
 	return g.getoptInternal(true)
 }
 
-// Reset initializes the Getopt for a new round of argument-parsing, using the argument list and short option
-// specification passed in here. Unlike the Posix getopt, this library stores the argument list and the option
-// definition in the Getopt struct so that each successive call in the parsing loop doesn't need to repeat the same list
-// of parameters.
+// New creates a new [Getopt] using the argument list and short option specification passed in here. Unlike the Posix
+// getopt, this library stores the argument list and the option definition in the Getopt struct so that each successive
+// call in the parsing loop doesn't need to repeat the same list of parameters.
 //
 // The opts string is a list of characters that are recognized option letters, optionally followed by colons to specify
 // that that letter takes an argument (returned via Opt.Arg). If a letter in opts is followed by two colons, its
@@ -176,46 +175,34 @@ func (g *Getopt) GetoptLongOnly() (*Opt, error) {
 // options.
 //
 // If opts begins with '-', then non-option arguments are treated as arguments to the option 1. This behavior mimics the
-// GNU extension. If opts begins with '+', or if POSIXLY_CORRECT is set in the environment at the time Reset is called,
+// GNU extension. If opts begins with '+', or if POSIXLY_CORRECT is set in the environment at the time New is called,
 // then arguments will not be permuted during parsing.
 //
 // The argument list is assumed to include the program name at index 0; it is not returned or processed as a real
 // argument.
-func (g *Getopt) Reset(args []string, opts string) {
-	g.Args = args
-	g.shortOptions = parseShortOptionSpec(opts)
+func New(args []string, opts string) *Getopt {
+	g := Getopt{
+		Args:         args,
+		shortOptions: parseShortOptionSpec(opts),
 
-	g.longOptions = nil
-	g.optind = 1
-	g.optreset = true
-	g.nextChar = nil
-	g.firstNonopt = g.optind
-	g.lastNonopt = g.optind
+		longOptions: nil,
+		optind:      1,
+		nextChar:    nil,
+		firstNonopt: 1,
+		lastNonopt:  1,
+	}
+	return &g
 }
 
-// ResetLong initializes the Getopt for a new round of argument-parsing using the argument list and short and long
-// option specifications given.
+// NewLong creates a new Getopt using the argument list and short and long option specifications given. See [Getopt].
 //
 // If opts includes 'W' followed by ';', then a GNU extension is enabled that allows long options to be specified as
 // arguments to the short option '-W'. For example, the argument sequence '-W foo=bar' will behave just as if it were
 // '--foo=bar'.
-func (g *Getopt) ResetLong(args []string, opts string, longOptions []Option) {
-	g.Reset(args, opts)
-	g.longOptions = longOptions
-}
-
-// New creates a new Getopt initialized as by Reset.
-func New(args []string, opts string) *Getopt {
-	var g Getopt
-	g.Reset(args, opts)
-	return &g
-}
-
-// NewLong creates a new Getopt initialized as by ResetLong.
 func NewLong(args []string, opts string, longOptions []Option) *Getopt {
-	var g Getopt
-	g.ResetLong(args, opts, longOptions)
-	return &g
+	g := New(args, opts)
+	g.longOptions = longOptions
+	return g
 }
 
 // exchange swaps two adjacent subsequences of Args. One subsequence is elements [firstNonopt,lastNonopt) which
