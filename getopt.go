@@ -1,6 +1,6 @@
 // Package getopt provides GNU-style argument parsing for both short and long arguments.
 //
-// Differences from Posix getopt:
+// Differences from Posix and GNU getopt:
 //  1. There are no global variables. All operations are performed on a Getopt struct that maintains state between
 //     successive calls. To read an option's argument value, read [Opt.Arg] instead of optarg. To reset option-parsing,
 //     create a new [Getopt] struct instead of assign optreset.
@@ -16,6 +16,8 @@
 //  5. The Flag and Val fields of Option have type rune, not int.
 //  6. The list of options and arguments cannot be changed in the middle of parsing. The argument list and option
 //     definition are set once at the start, and then you just call Getopt or GetoptLong with no parameters.
+//  7. The POSIXLY_CORRECT environment variable is ignored. The library runs as though the environment variable is never
+//     set. Use leading '+' or '-' characters in the option specification instead; see [Ordering] for more.
 package getopt
 
 import (
@@ -66,19 +68,18 @@ const (
 	// RequireOrder means options that follow non-option arguments are not recognized as options. Getopt will stop
 	// processing the argument list when the first non-option is seen. This mode can be useful when implementing a tool
 	// that has subcommands, where the main command and the subcommands have their separate sets of options. This
-	// behavior is what POSIX specifies should happen. To use this mode even when POSIXLY_CORRECT is not set, start the
-	// short option specification with a '+'.
+	// behavior is what POSIX specifies should happen, although it is not the default in this package. To use this mode,
+	// start the short option specification with a '+'.
 	RequireOrder Ordering = iota
 
 	// Permute means Getopt will permute the contents of Args as it scans, so that eventually all the non-options are at
-	// the end. This allows options to be given in any order and is the default behavior, unless the POSIXLY_CORRECT
-	// environment variable is set at the time the [Getopt] struct is initialized.
+	// the end. This allows options to be given in any order and is the default behavior.
 	Permute
 
-	// ReturnInOrder is an option available to programs that were written to expect options and other arguments in any
-	// order and that care about the ordering of the two. In this mode, non-option arguments are returned by [Getopt] as
-	// though they belong to an option with a character code of 1. To request this ordering behavior, start the short
-	// option specification with a '-'.
+	// ReturnInOrder is an option available to programs that expect options and other arguments in any order and that
+	// care about the ordering of the two. In this mode, non-option arguments are returned as though they belong to an
+	// option with a character code of 1. To request this ordering behavior, start the short option specification with a
+	// '-'.
 	ReturnInOrder
 )
 
@@ -175,8 +176,8 @@ func (g *Getopt) GetoptLongOnly() (*Opt, error) {
 // options.
 //
 // If opts begins with '-', then non-option arguments are treated as arguments to the option 1. This behavior mimics the
-// GNU extension. If opts begins with '+', or if POSIXLY_CORRECT is set in the environment at the time New is called,
-// then arguments will not be permuted during parsing.
+// GNU extension. If opts begins with '+', then arguments will not be permuted during parsing; parsing will stop when a
+// non-option argument is encountered.
 //
 // The argument list is assumed to include the program name at index 0; it is not returned or processed as a real
 // argument.

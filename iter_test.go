@@ -3,7 +3,6 @@ package getopt_test
 import (
 	"fmt"
 	"iter"
-	"os"
 
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
@@ -64,7 +63,6 @@ var _ = Describe("Getopt iterator interface", func() {
 	})
 
 	It("returns remaining arguments", func() {
-		Expect(os.Unsetenv(getopt.PosixlyCorrect)).To(Succeed())
 		var remaining []string
 		opts := collect(getopt.Iterate([]string{"prg", "-a", "arg1", "-b", "arg2"}, "ab", &remaining))
 		Expect(opts).To(HaveLen(2))
@@ -73,8 +71,6 @@ var _ = Describe("Getopt iterator interface", func() {
 })
 
 func ExampleIterate() {
-	_ = os.Unsetenv(getopt.PosixlyCorrect)
-
 	args := []string{"prg", "-a", "arg1", "-b", "arg2"}
 	optionDefinition := "ab"
 

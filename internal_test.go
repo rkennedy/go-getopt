@@ -17,6 +17,9 @@ func optFields(ordering, w, opts types.GomegaMatcher) Fields {
 	}
 }
 
+// This isn't supported, but we still want to have tests to _demonstrate_ that it's not used.
+const PosixlyCorrect = "POSIXLY_CORRECT"
+
 var _ = Describe("Option parsing", func() {
 	Context("with nearly empty options", func() {
 		DescribeTableSubtree("with no environment variabe set",
@@ -38,7 +41,7 @@ var _ = Describe("Option parsing", func() {
 			Entry(nil, "+", RequireOrder),
 		)
 
-		DescribeTableSubtree("in posixly correct mode",
+		DescribeTableSubtree("ignores posixly correct mode",
 			func(opts string, expected Ordering) {
 				BeforeEach(func() {
 					Expect(os.Setenv(PosixlyCorrect, "yes")).To(Succeed())
@@ -52,8 +55,8 @@ var _ = Describe("Option parsing", func() {
 					)))
 				})
 			},
-			Entry(nil, "", RequireOrder),
-			Entry(nil, "-", ReturnInOrder), // This override environment variable.
+			Entry(nil, "", Permute),
+			Entry(nil, "-", ReturnInOrder),
 			Entry(nil, "+", RequireOrder),
 		)
 

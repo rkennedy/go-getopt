@@ -1,7 +1,6 @@
 package getopt
 
 import (
-	"os"
 	"strings"
 )
 
@@ -18,22 +17,18 @@ func (inf *optinfo) HasOpt(c rune) bool {
 	return ok
 }
 
-// PosixlyCorrect holds the name of the environment variable that can affect how options are interpretted. When it's
-// set, the application will not permute the argument list.
-const PosixlyCorrect = "POSIXLY_CORRECT"
-
 func parseShortOptionSpec(options string) optinfo {
 	const (
 		inorderPrefix = "-"
 		posixPrefix   = "+"
 	)
 	var result optinfo
-	_, ok := os.LookupEnv("POSIXLY_CORRECT")
-	if strings.HasPrefix(options, inorderPrefix) {
+	switch {
+	case strings.HasPrefix(options, inorderPrefix):
 		result.Ordering = ReturnInOrder
-	} else if ok || strings.HasPrefix(options, posixPrefix) {
+	case strings.HasPrefix(options, posixPrefix):
 		result.Ordering = RequireOrder
-	} else {
+	default:
 		result.Ordering = Permute
 	}
 	if strings.HasPrefix(options, posixPrefix) || strings.HasPrefix(options, inorderPrefix) {
