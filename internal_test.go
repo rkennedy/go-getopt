@@ -9,8 +9,6 @@ import (
 	"github.com/onsi/gomega/types"
 )
 
-const PosixlyCorrect = "POSIXLY_CORRECT"
-
 func optFields(ordering, w, opts types.GomegaMatcher) Fields {
 	return Fields{
 		"Ordering": ordering,

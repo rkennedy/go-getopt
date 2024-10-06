@@ -131,6 +131,19 @@ var _ = Describe("Getopt", func() {
 		})
 	})
 
+	It("continues after detecting error", func() {
+		longOpts := []Option{
+			{Name: "aaa", Val: 'a'},
+			{Name: "bbb", Val: 'd'},
+			{Name: "ccc", Val: 'c'},
+		}
+		g := NewLong([]string{"prg", "-acb"}, "", longOpts)
+		Expect(g.Getopt()).Error().To(MatchError("unrecognized option '-a'"))
+		Expect(g.Getopt()).Error().To(MatchError("unrecognized option '-c'"))
+		Expect(g.Getopt()).Error().To(MatchError("unrecognized option '-b'"))
+		Expect(g.Getopt()).To(BeNil())
+	})
+
 	Context("handles W; options", func() {
 		longopts := []Option{
 			{Name: "alpha", HasArg: NoArgument, Val: 'a'},
