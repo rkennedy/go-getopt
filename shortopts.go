@@ -18,6 +18,10 @@ func (inf *optinfo) HasOpt(c rune) bool {
 	return ok
 }
 
+// PosixlyCorrect holds the name of the environment variable that can affect how options are interpretted. When it's
+// set, the application will not permute the argument list.
+const PosixlyCorrect = "POSIXLY_CORRECT"
+
 func parseShortOptionSpec(options string) optinfo {
 	const (
 		inorderPrefix = "-"
