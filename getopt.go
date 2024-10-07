@@ -109,8 +109,9 @@ type Getopt struct {
 //
 // If C is 1, then ordering is [ReturnInOrder] and Arg points to the current non-option argument.
 //
-// Otherwise, C holds the rune value of the matched short option or Val of the matched long option (in which case
-// LongInd also holds the index of the matched long option).
+// Otherwise, C holds the rune value of the matched short option or Val of the matched long option. When a short option
+// is matched, LongInd will be -1. When a long option is matched, LongInd holds the zero-based index of the matched
+// option from the longopts argument to [NewLong].
 type Opt struct {
 	C       rune
 	Arg     *string
@@ -147,8 +148,7 @@ func (g *Getopt) Optind() int {
 // unique or is an exact match for some defined option. If they have an argument, it follows the option name in the same
 // Args element, separated from the option name by a '=', or else in next Args element. When Getopt finds a long-named
 // option, it returns an Opt whose C field is 0 if that option's 'Flag' field is non-nil, or the value of the option's
-// 'Val' field if the 'Flag' field is nil. The Opt.LongInd field is only valid when a long-named option has
-// been found.
+// 'Val' field if the 'Flag' field is nil.
 func (g *Getopt) Getopt() (*Opt, error) {
 	return g.getoptInternal(false)
 }
@@ -349,6 +349,7 @@ func (g *Getopt) processLongOption(longOnly bool, prefix string) (*Opt, error) {
 	if pfound.Flag != nil {
 		*pfound.Flag = pfound.Val
 		return &Opt{
+			C:       0,
 			LongInd: optionIndex,
 			Arg:     arg,
 		}, nil
@@ -433,8 +434,9 @@ func (g *Getopt) getoptInternal(longOnly bool) (*Opt, error) {
 			arg := &g.Args[g.optind]
 			g.optind++
 			return &Opt{
-				C:   1,
-				Arg: arg,
+				C:       1,
+				LongInd: -1,
+				Arg:     arg,
 			}, nil
 		}
 
@@ -529,7 +531,8 @@ func (g *Getopt) getoptInternal(longOnly bool) (*Opt, error) {
 		g.nextChar = nil
 	}
 	return &Opt{
-		C:   c,
-		Arg: arg,
+		C:       c,
+		LongInd: -1,
+		Arg:     arg,
 	}, nil
 }

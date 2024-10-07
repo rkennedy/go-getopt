@@ -134,7 +134,7 @@ var _ = Describe("Getopt", func() {
 	It("continues after detecting error", func() {
 		longOpts := []Option{
 			{Name: "aaa", Val: 'a'},
-			{Name: "bbb", Val: 'd'},
+			{Name: "bbb", Val: 'b'},
 			{Name: "ccc", Val: 'c'},
 		}
 		g := NewLong([]string{"prg", "-acb"}, "", longOpts)

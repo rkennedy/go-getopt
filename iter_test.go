@@ -25,8 +25,7 @@ func collect[K comparable, V any](items iter.Seq2[K, V]) (result []Pair[K, V]) {
 
 var _ = Describe("Getopt iterator interface", func() {
 	It("returns in order", func() {
-		var remaining []string
-		opts := collect(getopt.Iterate([]string{"prg", "-ba", "-c"}, "abc", &remaining))
+		opts := collect(getopt.Iterate([]string{"prg", "-ba", "-c"}, "abc", nil))
 		Expect(opts).To(HaveExactElements(
 			MatchAllFields(Fields{
 				"K": PointTo(MatchFields(IgnoreExtras, Fields{"C": Equal('b')})),
@@ -44,8 +43,7 @@ var _ = Describe("Getopt iterator interface", func() {
 	})
 
 	It("continues on error", func() {
-		var remaining []string
-		opts := collect(getopt.Iterate([]string{"prg", "-acb"}, "", &remaining))
+		opts := collect(getopt.Iterate([]string{"prg", "-acb"}, "", nil))
 		Expect(opts).To(HaveExactElements(
 			MatchAllFields(Fields{
 				"K": BeNil(),
@@ -92,4 +90,28 @@ func ExampleIterate() {
 	// got option a
 	// got option b
 	// Remaining arguments: [arg1 arg2]
+}
+
+func ExampleIterateLong() {
+	args := []string{"prg", "-d", "--bbb", "-a"}
+	optionDefinition := "ab"
+	longOpts := []getopt.Option{
+		{Name: "aaa", Val: 'a'},
+		{Name: "bbb", Val: 'b'},
+	}
+	for opt, err := range getopt.IterateLong(args, optionDefinition, longOpts, nil) {
+		if err != nil {
+			_, _ = fmt.Println(err.Error())
+			continue
+		}
+		if opt.LongInd == -1 {
+			_, _ = fmt.Printf("Got short option '%c'\n", opt.C)
+		} else {
+			_, _ = fmt.Printf("Got long option '%s'\n", longOpts[opt.LongInd].Name)
+		}
+	}
+	// Output:
+	// unrecognized option '-d'
+	// Got long option 'bbb'
+	// Got short option 'a'
 }
