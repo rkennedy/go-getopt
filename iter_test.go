@@ -93,3 +93,28 @@ func ExampleIterate() {
 	// got option b
 	// Remaining arguments: [arg1 arg2]
 }
+
+func ExampleIterateLong() {
+	args := []string{"prg", "-d", "--bbb", "-a"}
+	optionDefinition := "ab"
+	longOpts := []getopt.Option{
+		{Name: "aaa", Val: 'a'},
+		{Name: "bbb", Val: 'b'},
+	}
+	var remaining []string
+	for opt, err := range getopt.IterateLong(args, optionDefinition, longOpts, &remaining) {
+		if err != nil {
+			_, _ = fmt.Println(err.Error())
+			continue
+		}
+		if opt.LongInd == -1 {
+			_, _ = fmt.Printf("Got short option '%c'\n", opt.C)
+		} else {
+			_, _ = fmt.Printf("Got long option '%s'\n", longOpts[opt.LongInd].Name)
+		}
+	}
+	// Output:
+	// unrecognized option '-d'
+	// Got long option 'bbb'
+	// Got short option 'a'
+}
