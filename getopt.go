@@ -34,7 +34,7 @@ const (
 // defining the [Option] list for long options.
 type ArgumentDisposition int
 
-// These [ArgumentDisposition] values are used for the HasArg field of [Option]s.
+// These [ArgumentDisposition] values are used for the HasArg field of [Option] values.
 const (
 	NoArgument       ArgumentDisposition = iota // The option does not take an argument.
 	RequiredArgument                            // The option requires an argument.
