@@ -25,8 +25,7 @@ func collect[K comparable, V any](items iter.Seq2[K, V]) (result []Pair[K, V]) {
 
 var _ = Describe("Getopt iterator interface", func() {
 	It("returns in order", func() {
-		var remaining []string
-		opts := collect(getopt.Iterate([]string{"prg", "-ba", "-c"}, "abc", &remaining))
+		opts := collect(getopt.Iterate([]string{"prg", "-ba", "-c"}, "abc", nil))
 		Expect(opts).To(HaveExactElements(
 			MatchAllFields(Fields{
 				"K": PointTo(MatchFields(IgnoreExtras, Fields{"C": Equal('b')})),
@@ -44,8 +43,7 @@ var _ = Describe("Getopt iterator interface", func() {
 	})
 
 	It("continues on error", func() {
-		var remaining []string
-		opts := collect(getopt.Iterate([]string{"prg", "-acb"}, "", &remaining))
+		opts := collect(getopt.Iterate([]string{"prg", "-acb"}, "", nil))
 		Expect(opts).To(HaveExactElements(
 			MatchAllFields(Fields{
 				"K": BeNil(),
@@ -101,8 +99,7 @@ func ExampleIterateLong() {
 		{Name: "aaa", Val: 'a'},
 		{Name: "bbb", Val: 'b'},
 	}
-	var remaining []string
-	for opt, err := range getopt.IterateLong(args, optionDefinition, longOpts, &remaining) {
+	for opt, err := range getopt.IterateLong(args, optionDefinition, longOpts, nil) {
 		if err != nil {
 			_, _ = fmt.Println(err.Error())
 			continue
