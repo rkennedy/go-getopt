@@ -62,7 +62,7 @@ g sh -x <<END
 set -euo pipefail
 apk add --no-cache git
 if ${update}; then
-    find -name go.mod -exec /bin/sh -c 'go -C \$(dirname {}) get -u' ';'
+    find -name go.mod -exec /bin/sh -c 'go -C \$(dirname {}) get -u -t' ';'
 fi
 find -name go.mod -exec /bin/sh -c 'go -C \$(dirname {}) mod tidy -go 1.25' ';'
 
