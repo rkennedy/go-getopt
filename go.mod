@@ -1,8 +1,6 @@
 module github.com/rkennedy/go-getopt
 
-go 1.23
-
-toolchain go1.23.1
+go 1.25
 
 require (
 	github.com/onsi/ginkgo/v2 v2.20.2

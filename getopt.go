@@ -505,6 +505,8 @@ func (g *Getopt) getoptInternal(longOnly bool) (*Opt, error) {
 
 	var arg *string
 	switch d, _ := g.shortOptions.Opts[c]; d {
+	default:
+		// NoArgument. Nothing to do.
 	case OptionalArgument:
 		if len(g.nextChar) != 0 {
 			s := string(g.nextChar)

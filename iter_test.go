@@ -83,6 +83,8 @@ func ExampleIterate() {
 			_, _ = fmt.Println("got option a")
 		case 'b':
 			_, _ = fmt.Println("got option b")
+		default:
+			panic("cannot reach here")
 		}
 	}
 	_, _ = fmt.Printf("Remaining arguments: %v", remaining)

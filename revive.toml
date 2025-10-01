@@ -32,6 +32,9 @@ arguments = [{ allowedPackages = [
   "github.com/rkennedy/go-getopt",
 ]}]
 
+[rule.enforce-switch-style]
+arguments = ["allowDefaultNotLast"]
+
 [rule.file-header]
 disabled = true  # Not useful here. Use pre-commit to enforce copyright, if needed.
 
