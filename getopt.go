@@ -3,7 +3,7 @@
 // Differences from Posix and GNU getopt:
 //  1. There are no global variables. All operations are performed on a Getopt struct that maintains state between
 //     successive calls. To read an option's argument value, read [Opt.Arg] instead of optarg. To reset option-parsing,
-//     create a new [Getopt] struct instead of assign optreset.
+//     create a new [Getopt] struct instead of assigning optreset.
 //  2. The opterr setting is permanently false. Errors are never printed anywhere by this library. Instead, errors are
 //     returned and the caller can choose what to do with them. The text of the errors corresponds to messages that
 //     would be printed by GNU getopt. The leading ':' in the option spec that controls error-reporting is accepted for
@@ -65,11 +65,11 @@ type Option struct {
 type Ordering int
 
 const (
-	// RequireOrder means options that follow non-option arguments are not recognized as options. Getopt will stop
-	// processing the argument list when the first non-option is seen. This mode can be useful when implementing a tool
-	// that has subcommands, where the main command and the subcommands have their separate sets of options. This
-	// behavior is what POSIX specifies should happen, although it is not the default in this package. To use this mode,
-	// start the short option specification with a '+'.
+	// RequireOrder means arguments that look like options, but that follow non-option arguments, are not recognized as
+	// options. Getopt will stop processing the argument list when the first non-option is seen. This mode can be useful
+	// when implementing a tool that has subcommands, where the main command and the subcommands have their own separate
+	// sets of options. This behavior is what POSIX specifies should happen, although it is not the default in this
+	// package. To use this mode, start the short option specification with a '+'.
 	RequireOrder Ordering = iota
 
 	// Permute means Getopt will permute the contents of Args as it scans, so that eventually all the non-options are at
@@ -103,11 +103,13 @@ type Getopt struct {
 
 // Opt is a result from parsing one option off a given argument list.
 //
-// If C is 0, then a long option was matched, Flag pointed at a variable, and the variable has been assigned a value
-// from Val. Opt.Arg holds the argument for that option, if any, and LongInd holds the index of the long option that
-// matched.
+// If C is 0, then a long option was matched, the long-option specification's Flag field pointed at a variable, and the
+// variable has been assigned a value from the option specification's Val field. Opt.Arg holds the argument for the
+// option, if any, and LongInd holds the index of the matching long-option specification that was passed to [NewLong] or
+// [IterateLong].
 //
-// If C is 1, then ordering is [ReturnInOrder] and Arg points to the current non-option argument.
+// If C is 1, then ordering is [ReturnInOrder] (i.e., the short option specification began with '-') and Arg points to
+// the current non-option argument.
 //
 // Otherwise, C holds the rune value of the matched short option or Val of the matched long option. When a short option
 // is matched, LongInd will be -1. When a long option is matched, LongInd holds the zero-based index of the matched
@@ -147,8 +149,8 @@ func (g *Getopt) Optind() int {
 // Long-named options begin with '--' instead of '-'. Their names may be abbreviated as long as the abbreviation is
 // unique or is an exact match for some defined option. If they have an argument, it follows the option name in the same
 // Args element, separated from the option name by a '=', or else in next Args element. When Getopt finds a long-named
-// option, it returns an Opt whose C field is 0 if that option's 'Flag' field is non-nil, or the value of the option's
-// 'Val' field if the 'Flag' field is nil.
+// option, it returns an Opt whose C field is 0 if that option's Flag field is non-nil, or the value of the option's Val
+// field if the Flag field is nil.
 func (g *Getopt) Getopt() (*Opt, error) {
 	return g.getoptInternal(false)
 }

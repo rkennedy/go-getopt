@@ -1,6 +1,9 @@
 package getopt_test
 
 import (
+	"fmt"
+	"strconv"
+
 	. "github.com/onsi/ginkgo/v2"
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
@@ -186,3 +189,107 @@ var _ = Describe("Getopt", func() {
 		})
 	})
 })
+
+func ExampleGetopt_Getopt() {
+	args := []string{"program", "-n", "-t", "3", "4", "5"}
+	gopt := New(args, "nt:")
+
+	nsecs := 0
+	tfnd := 0
+	flags := 0
+
+	var opt *Opt
+	var err error
+	for opt, err = gopt.Getopt(); err == nil && opt != nil; opt, err = gopt.Getopt() {
+		switch opt.C {
+		case 'n':
+			flags = 1
+		case 't':
+			nsecs, _ = strconv.Atoi(*opt.Arg)
+			tfnd = 1
+		default:
+		}
+	}
+	_, _ = fmt.Printf("flags=%d; tfnd=%d; nsecs=%d; optind=%d\n", flags, tfnd, nsecs, gopt.Optind())
+
+	// Output:
+	// flags=1; tfnd=1; nsecs=3; optind=4
+}
+
+func ExampleGetopt_GetoptLong() {
+	longOptions := []Option{
+		{Name: "add", HasArg: RequiredArgument},
+		{Name: "append", HasArg: NoArgument},
+		{Name: "delete", HasArg: RequiredArgument},
+		{Name: "verbose", HasArg: NoArgument},
+		{Name: "create", HasArg: RequiredArgument, Val: 'c'},
+		{Name: "file", HasArg: RequiredArgument},
+	}
+
+	args := []string{"program", "--add", "a", "--append", "-0", "--delete", "d", "-2", "--verbose", "-cc", "--", "xyz"}
+	gopt := NewLong(args, "abc:d:012", longOptions)
+
+	digitOptind := 0
+
+	var opt *Opt
+	var err error
+	for opt, err = gopt.GetoptLong(); err == nil && opt != nil; opt, err = gopt.GetoptLong() {
+		thisOptionOptind := gopt.Optind()
+
+		switch opt.C {
+		case 0:
+			_, _ = fmt.Printf("option %s", longOptions[opt.LongInd].Name)
+			if opt.Arg != nil {
+				_, _ = fmt.Printf(" with arg %s", *opt.Arg)
+			}
+			_, _ = fmt.Println()
+
+		case '0', '1', '2':
+			if digitOptind != 0 && digitOptind != thisOptionOptind {
+				_, _ = fmt.Println("digits occur in two different argv-elements.")
+			}
+			digitOptind = thisOptionOptind
+			_, _ = fmt.Printf("option %c\n", opt.C)
+
+		case 'a':
+			_, _ = fmt.Println("option a")
+
+		case 'b':
+			_, _ = fmt.Println("option b")
+
+		case 'c':
+			_, _ = fmt.Printf("option c with value '%s'\n", *opt.Arg)
+
+		case 'd':
+			_, _ = fmt.Printf("option d with value '%s'\n", *opt.Arg)
+
+		case '?':
+
+		default:
+			_, _ = fmt.Printf("?? getopt returned character code 0%o ??\n", opt.C)
+		}
+	}
+
+	if err != nil {
+		_, _ = fmt.Printf("error: %v\n", err)
+	}
+
+	if gopt.Optind() < len(args) {
+		_, _ = fmt.Print("non-option ARGV-elements: ")
+		for optind := gopt.Optind(); optind < len(args); optind++ {
+			_, _ = fmt.Printf("%s ", args[optind])
+		}
+		_, _ = fmt.Println()
+	}
+
+	// Output:
+	// option add with arg a
+	// option append
+	// option 0
+	// option delete with arg d
+	// digits occur in two different argv-elements.
+	// option 2
+	// option verbose
+	// option c with value 'c'
+	// non-option ARGV-elements: xyz
+}
