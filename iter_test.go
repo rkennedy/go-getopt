@@ -8,7 +8,7 @@ import (
 	. "github.com/onsi/gomega"
 	. "github.com/onsi/gomega/gstruct"
 
-	"github.com/rkennedy/go-getopt"
+	"sweetkennedy.net/getopt"
 )
 
 type Pair[K comparable, V any] struct {

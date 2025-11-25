@@ -1,4 +1,4 @@
-module github.com/rkennedy/go-getopt
+module sweetkennedy.net/getopt
 
 go 1.25
 

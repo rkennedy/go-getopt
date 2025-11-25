@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 
 	"github.com/magefile/mage/mg"
-	"github.com/rkennedy/magehelper"
-	"github.com/rkennedy/magehelper/tools"
+	"sweetkennedy.net/magehelper"
+	"sweetkennedy.net/magehelper/tools"
 )
 
 // thisDir is the name of the directory, relative to the main module directory, where _this_ module and its go.mod file
@@ -22,10 +22,6 @@ func goimportsBin() string {
 
 func reviveBin() string {
 	return filepath.Join(binDir, "revive")
-}
-
-func ginkgoBin() string {
-	return filepath.Join(binDir, "ginkgo")
 }
 
 func logV(s string, args ...any) {
@@ -53,12 +49,12 @@ func Lint(ctx context.Context) error {
 
 // Test runs unit tests.
 func Test(ctx context.Context) {
-	mg.CtxDeps(ctx, magehelper.Test().UseGinkgo(ginkgoBin()))
+	mg.CtxDeps(ctx, magehelper.Test())
 }
 
 // BuildTests build all the tests.
 func BuildTests(ctx context.Context) {
-	mg.CtxDeps(ctx, magehelper.BuildTests().UseGinkgo(ginkgoBin()))
+	mg.CtxDeps(ctx, magehelper.BuildTests())
 }
 
 // Check runs the test and lint targets.

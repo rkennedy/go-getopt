@@ -3,7 +3,7 @@ package getopt_test
 import (
 	"fmt"
 
-	. "github.com/rkennedy/go-getopt"
+	. "sweetkennedy.net/getopt"
 )
 
 func ExampleAmbiguousOptionError() {
