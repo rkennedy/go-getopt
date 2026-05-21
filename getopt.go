@@ -301,7 +301,7 @@ func (g *Getopt) processLongOption(longOnly bool, prefix string) (*Opt, error) {
 		}
 
 		if len(ambig.Candidates) > 1 {
-			ambig.Option = string(g.nextChar)
+			ambig.Option = targetName
 			ambig.prefix = prefix
 
 			g.nextChar = nil

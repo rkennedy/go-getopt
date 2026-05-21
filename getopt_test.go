@@ -106,13 +106,13 @@ var _ = Describe("Getopt", func() {
 
 	It("detects ambiguous arguments", func() {
 		longopts := []Option{
-			{Name: "one", HasArg: NoArgument, Val: '1'},
+			{Name: "one", HasArg: OptionalArgument, Val: '1'},
 			{Name: "two", HasArg: NoArgument, Val: '2'},
-			{Name: "one-one", HasArg: NoArgument, Val: '3'},
+			{Name: "one-one", HasArg: OptionalArgument, Val: '3'},
 			{Name: "four", HasArg: NoArgument, Val: '4'},
-			{Name: "onto", HasArg: NoArgument, Val: '5'},
+			{Name: "onto", HasArg: OptionalArgument, Val: '5'},
 		}
-		argv := []string{"program", "--on"}
+		argv := []string{"program", "--on=value"}
 
 		gopt := NewLong(argv, "12345", longopts)
 		Expect(gopt.GetoptLong()).Error().
