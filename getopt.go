@@ -462,7 +462,7 @@ func (g *Getopt) getoptInternal(longOnly bool) (*Opt, error) {
 			// abbreviation of the long option, just like "--fu", and not "-f" with arg "u".
 			//
 			// This distinction seems to be the most useful approach.
-			if longOnly && (len(g.Args[g.optind]) > 1 || !g.shortOptions.HasOpt([]rune(g.Args[g.optind])[1])) {
+			if longOnly && (len(g.Args[g.optind]) > 2 || !g.shortOptions.HasOpt([]rune(g.Args[g.optind])[1])) { //revive:disable-line:add-constant,line-length-limit
 				g.nextChar = []rune(g.Args[g.optind])[1:]
 				opt, err := g.processLongOption(longOnly, dash)
 				if opt != nil {
