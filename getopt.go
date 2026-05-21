@@ -88,7 +88,7 @@ const (
 
 // Getopt is an option parser.
 type Getopt struct {
-	Args         []string // Args holds a copy of the argument list. It gets permuted during parsing.
+	Args         []string // Args holds a reference to the argument list and is permuted during parsing.
 	shortOptions optinfo
 	longOptions  []Option
 

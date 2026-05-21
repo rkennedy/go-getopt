@@ -2,6 +2,7 @@ package getopt_test
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 
 	. "github.com/onsi/ginkgo/v2"
@@ -145,6 +146,49 @@ var _ = Describe("Getopt", func() {
 		Expect(g.Getopt()).Error().To(MatchError("unrecognized option '-c'"))
 		Expect(g.Getopt()).Error().To(MatchError("unrecognized option '-b'"))
 		Expect(g.Getopt()).To(BeNil())
+	})
+
+	It("permutes the caller's input slice", func() {
+		args := []string{"program", "arg1", "-a", "arg2", "-b"}
+
+		gopt := New(args, "ab")
+		for opt, err := gopt.Getopt(); opt != nil || err != nil; opt, err = gopt.Getopt() {
+			Expect(err).NotTo(HaveOccurred())
+		}
+
+		match := And(
+			HaveLen(gopt.Optind()+2),
+			// We only care about the positions of the non-option arguments that get permuted to the end of the list.
+			MatchElementsWithIndex(IndexIdentity, IgnoreExtras, Elements{
+				strconv.Itoa(gopt.Optind()):     Equal("arg1"),
+				strconv.Itoa(gopt.Optind() + 1): Equal("arg2"),
+			}),
+		)
+		// In practice, both slices refer to the same data. That is, &args[0] == &gopt.Args[0]. That details isn't
+		// strictly required, so long as both slices _look_ the same.
+		Expect(args).To(match)
+		Expect(gopt.Args).To(match)
+	})
+
+	It("returns options and non-options interspersed in ReturnInOrder mode", func() {
+		args := []string{"program", "x", "-a", "y", "-b", "z"}
+		original := slices.Clone(args)
+
+		gopt := New(args, "-ab")
+		got := []string{}
+		for opt, err := gopt.Getopt(); opt != nil || err != nil; opt, err = gopt.Getopt() {
+			Expect(err).NotTo(HaveOccurred())
+			if opt.C == 1 {
+				Expect(opt.Arg).NotTo(BeNil())
+				got = append(got, "1:"+*opt.Arg)
+				continue
+			}
+			got = append(got, string(opt.C))
+		}
+
+		Expect(got).To(HaveExactElements("1:x", "a", "1:y", "b", "1:z"))
+		Expect(args).To(Equal(original))
+		Expect(gopt.Args).To(Equal(original))
 	})
 
 	Context("handles W; options", func() {
