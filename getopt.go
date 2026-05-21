@@ -49,7 +49,10 @@ const (
 //
 // To have a long-named option do something other than set a rune to a compiled-in constant, such as set a value from
 // Opt.Arg, set the option's Flag to nil and its Val to a nonzero value (such as the option's equivalent single-letter
-// option character, if there is one). For long options that have a nil Flag, Getopt returns the Val field in Opt.C.
+// option character, if there is one). For long options that have a nil Flag, Getopt returns the Val field in Opt.C. Do
+// not set Val to 0 or 1. A value of 0 would interfere with Getopt's method of indicating that the caller needs to check
+// LongInd, while a value of 1 is reserved for indicating that the Arg value points to a non-option argument being
+// returned in ReturnInOrder mode.
 type Option struct {
 	Name   string
 	HasArg ArgumentDisposition
