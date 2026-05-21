@@ -29,7 +29,7 @@ var _ = Describe("Option parsing", func() {
 				})
 
 				It("parses the options", func() {
-					Expect(parseShortOptionSpec(opts)).To(MatchAllFields(optFields(
+					Expect(ParseShortOptionSpec(opts)).To(MatchAllFields(optFields(
 						Equal(expected),
 						BeFalse(),
 						BeEmpty(),
@@ -48,7 +48,7 @@ var _ = Describe("Option parsing", func() {
 				})
 
 				It("parses the options", func() {
-					Expect(parseShortOptionSpec(opts)).To(MatchAllFields(optFields(
+					Expect(ParseShortOptionSpec(opts)).To(MatchAllFields(optFields(
 						Equal(expected),
 						BeFalse(),
 						BeEmpty(),
@@ -63,7 +63,7 @@ var _ = Describe("Option parsing", func() {
 		// Leading colon should be allowed, but also have no effect.
 		DescribeTable("accepts but ignores leading colon",
 			func(opts string) {
-				Expect(parseShortOptionSpec(opts)).To(MatchAllFields(optFields(
+				Expect(ParseShortOptionSpec(opts)).To(MatchAllFields(optFields(
 					Ignore(),
 					BeFalse(),
 					BeEmpty(),
@@ -77,7 +77,7 @@ var _ = Describe("Option parsing", func() {
 
 	DescribeTable("handles W options",
 		func(opts string, fields Fields) {
-			Expect(parseShortOptionSpec(opts)).To(MatchAllFields(fields))
+			Expect(ParseShortOptionSpec(opts)).To(MatchAllFields(fields))
 		},
 		Entry(nil, "W;", optFields(Ignore(), BeTrue(), MatchAllKeys(Keys{
 			'W': Equal(NoArgument),

@@ -9,7 +9,7 @@ exclude = [
 ]
 
 [rule.add-constant]
-arguments = [{ allowStrs = "\"\"", allowInts = "0,1" }]
+arguments = [{ allowStrs = "\"\",\" \"", allowInts = "0,1" }]
 
 [rule.argument-limit]
 arguments = [4]

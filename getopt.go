@@ -189,7 +189,7 @@ func (g *Getopt) GetoptLongOnly() (*Opt, error) {
 func New(args []string, opts string) *Getopt {
 	g := Getopt{
 		Args:         args,
-		shortOptions: parseShortOptionSpec(opts),
+		shortOptions: ParseShortOptionSpec(opts),
 
 		longOptions: nil,
 		optind:      1,

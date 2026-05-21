@@ -3,8 +3,11 @@ module sweetkennedy.net/getopt
 go 1.25
 
 require (
+	github.com/MakeNowJust/heredoc/v2 v2.0.1
 	github.com/onsi/ginkgo/v2 v2.25.3
 	github.com/onsi/gomega v1.38.2
+	github.com/rivo/uniseg v0.4.7
+	golang.org/x/term v0.35.0
 )
 
 require (

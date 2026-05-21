@@ -17,7 +17,8 @@ func (inf *optinfo) HasOpt(c rune) bool {
 	return ok
 }
 
-func parseShortOptionSpec(options string) optinfo {
+// ParseShortOptionSpec compiles information about the option string. It is an internal function.
+func ParseShortOptionSpec(options string) optinfo { //revive:disable-line:unexported-return
 	const (
 		inorderPrefix = "-"
 		posixPrefix   = "+"
