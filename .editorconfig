@@ -11,5 +11,6 @@ indent_style = space
 indent_size = 4
 
 [*.go]
+# This should match what's in revive.toml.
 max_line_length = 120
 indent_size = 4

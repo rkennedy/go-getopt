@@ -42,14 +42,14 @@ disabled = true  # Not useful here. Use pre-commit to enforce copyright, if need
 disabled = true  # Not worth exploring alternatives right now.
 
 [rule.function-length]
-disabled = true  # Getopt has very ling functions.
+disabled = true  # Getopt has very long functions.
 arguments = [10, 0]
 
 [rule.function-result-limit]
 disabled = true  # Not a useful metric for me.
 
 [rule.line-length-limit]
-arguments = [120]
+arguments = [120]  # This ought to match what's in .editorconfig.
 
 [rule.max-public-structs]
 disabled = true  # We don't care about this limit.
