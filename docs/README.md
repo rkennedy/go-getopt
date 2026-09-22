@@ -129,3 +129,32 @@ There are a number of key differences between this module and GNU's C library:
    though the environment variable is never set. Use leading '+' or '-'
    characters in the option specification instead; see the `Ordering` type for
    more.
+
+## Help text
+
+The main `getopt` package only parses arguments, but another common need is to
+print help text for a program that corresponds to the supported options. The
+`getopt/help` package fills that gap by allowing you to specify the help text
+and print it in a consistent format. Furthermore, given a `UsageParams` struct,
+you can generate the short and long options for use with the main `getopt`
+package.
+
+```go
+params := help.UsageParams{
+    Usage: "myprogram [options] <file>",
+    Description: "Demonstrates usage-generated program options.",
+    Entries: []help.Entry{
+        {Short: 'h', Long: "help", Description: "Print this help text."},
+        {Short: 'f', Long: "file", Var: "FILE", Description: "Specify the file to process."},
+        {Short: 'c', Long: "color", Var: "COLOR?", Description: "Specify the color to use (optional)."},
+    },
+}
+gopt := getopt.NewLong(os.Args, params.ShortOptions(), params.LongOptions())
+for opt, err := gopt.GetoptLong(); err == nil && opt != nil; opt, err = gopt.GetoptLong() {
+    switch opt.C {
+    case 'h':
+        help.Usage(os.Stdout, &params, 0)
+    ...
+    }
+}
+```
