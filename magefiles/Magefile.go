@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/magefile/mage/mg"
+	"github.com/magefile/mage/sh"
 	"sweetkennedy.net/magehelper"
 	"sweetkennedy.net/magehelper/tools"
 )
@@ -49,12 +50,12 @@ func Lint(ctx context.Context) error {
 
 // Test runs unit tests.
 func Test(ctx context.Context) {
-	mg.CtxDeps(ctx, magehelper.Test())
+	mg.SerialCtxDeps(ctx, Generate, magehelper.Test())
 }
 
 // BuildTests build all the tests.
 func BuildTests(ctx context.Context) {
-	mg.CtxDeps(ctx, magehelper.BuildTests())
+	mg.SerialCtxDeps(ctx, Generate, magehelper.BuildTests())
 }
 
 // Check runs the test and lint targets.
@@ -69,5 +70,10 @@ func All(ctx context.Context) {
 
 // Generate creates all generated code files.
 func Generate(ctx context.Context) {
-	mg.CtxDeps(ctx, Imports)
+	mg.CtxDeps(ctx, Imports, Fix)
+}
+
+// Fix runs `go fix` on the project.
+func Fix(ctx context.Context) {
+	mg.CtxDeps(ctx, mg.F(sh.Run, "go", "fix", "./..."))
 }

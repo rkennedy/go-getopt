@@ -231,7 +231,7 @@ func (g *Getopt) exchange() {
 			length := middle - bottom
 
 			// Swap it with the top part of the top segment.
-			for i := 0; i < length; i++ {
+			for i := range length {
 				tem := g.Args[bottom+i]
 				g.Args[bottom+i] = g.Args[top-(middle-bottom)+i]
 				g.Args[top-(middle-bottom)+i] = tem
@@ -243,7 +243,7 @@ func (g *Getopt) exchange() {
 			length := top - middle
 
 			// Swap it with the bottom part of the bottom segment.
-			for i := 0; i < length; i++ {
+			for i := range length {
 				tem := g.Args[bottom+i]
 				g.Args[bottom+i] = g.Args[middle+i]
 				g.Args[middle+i] = tem

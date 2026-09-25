@@ -10,19 +10,19 @@ import (
 // Entries with no Short value set are omitted. Entries with a Var value will include a colon to indicate a required
 // argument, or two colons for an optional argument if the Var entry ends with a question mark.
 func (up *UsageParams) ShortOptions() string {
-	result := ""
+	var result strings.Builder
 	for _, entry := range up.Entries {
 		if entry.Short != 0 {
-			result += string(entry.Short)
+			_, _ = result.WriteString(string(entry.Short))
 			if entry.Var != "" {
-				result += ":"
+				_, _ = result.WriteString(":")
 				if strings.HasSuffix(entry.Var, "?") {
-					result += ":"
+					_, _ = result.WriteString(":")
 				}
 			}
 		}
 	}
-	return result
+	return result.String()
 }
 
 // LongOptions returns a list of values suitable for use with [getopt.NewLong] corresponding to options described in up.

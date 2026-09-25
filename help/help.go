@@ -143,7 +143,7 @@ func printWrappedWithPrefixes(out io.Writer, firstPrefix, continuationPrefix, te
 
 func wrapWords(text string, firstWidth, continuationWidth int) []string {
 	var lines []string
-	for _, rawLine := range strings.Split(text, "\n") {
+	for rawLine := range strings.SplitSeq(text, "\n") {
 		lines = append(lines, wrapOneLine(rawLine, firstWidth, continuationWidth)...)
 		firstWidth = continuationWidth
 	}
