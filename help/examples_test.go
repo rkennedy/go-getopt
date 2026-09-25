@@ -85,7 +85,7 @@ func ExampleUsageParams_ShortOptions() {
 	args := []string{"myprog", "-h"}
 	for opt, err := range getopt.Iterate(args, params.ShortOptions(), nil) {
 		if err != nil {
-			fmt.Printf("error: %s\n", err.Error())
+			_, _ = fmt.Printf("error: %s\n", err.Error())
 			continue
 		}
 		if opt.C == 'h' {
@@ -120,7 +120,7 @@ func ExampleUsageParams_LongOptions() {
 	args := []string{"myprog", "-h"}
 	for opt, err := range getopt.IterateLong(args, params.ShortOptions(), params.LongOptions(), nil) {
 		if err != nil {
-			fmt.Printf("error: %s\n", err.Error())
+			_, _ = fmt.Printf("error: %s\n", err.Error())
 			continue
 		}
 		if opt.C == 'h' {
